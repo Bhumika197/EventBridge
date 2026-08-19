@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { PATTERNS_DATA } from '../data/patternsData';
 import { BookOpen, Layers, FileText, X, ExternalLink, ArrowLeft } from 'lucide-react';
 
 export const DesignPatternExplorer: React.FC = () => {
-  const [data, setData] = useState<{ patterns: any[]; umlDiagrams: any[] } | null>(null);
+  const [data, setData] = useState<{ patterns: any[]; umlDiagrams: any[] }>(PATTERNS_DATA);
   const [selectedPatternId, setSelectedPatternId] = useState<string>('singleton');
   const [activeTab, setActiveTab] = useState<'patterns' | 'uml'>('patterns');
 
@@ -11,16 +12,17 @@ export const DesignPatternExplorer: React.FC = () => {
   const [selectedUml, setSelectedUml] = useState<any | null>(null);
 
   useEffect(() => {
-    api.getPatterns().then((res) => {
-      if (res.success) {
-        setData(res.data);
-      }
-    });
+    api.getPatterns()
+      .then((res) => {
+        if (res && res.success && res.data) {
+          setData(res.data);
+        }
+      })
+      .catch((err) => {
+        // Fallback to static PATTERNS_DATA if API request fails
+        console.warn('API getPatterns failed, using static PATTERNS_DATA fallback:', err);
+      });
   }, []);
-
-  if (!data) {
-    return <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>Loading Design Pattern Architecture Explorer...</div>;
-  }
 
   const selectedPattern = data.patterns.find((p) => p.id === selectedPatternId) || data.patterns[0];
 
