@@ -7,6 +7,15 @@ interface LoginModalProps {
   onClose: () => void;
 }
 
+const FALLBACK_COLLEGES = [
+  { collegeId: 1, name: 'Ramdeobaba University', emailDomain: 'rbunagpur.in' },
+  { collegeId: 2, name: 'Shri Ramdeobaba College of Engineering and Management (RCOEM)', emailDomain: 'rcoem.in' },
+  { collegeId: 3, name: 'North Valley University', emailDomain: 'nvu.edu' },
+  { collegeId: 4, name: 'Greenfield Institute of Technology', emailDomain: 'git.edu' },
+  { collegeId: 5, name: 'City Arts College', emailDomain: 'cac.edu' },
+  { collegeId: 6, name: 'National Business College', emailDomain: 'nbc.edu' }
+];
+
 export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
   const { login, colleges } = useAuth();
   const [modalMode, setModalMode] = useState<'login' | 'register' | 'forgot'>('login');
@@ -36,6 +45,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const availableColleges = colleges && colleges.length > 0 ? colleges : FALLBACK_COLLEGES;
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -328,12 +339,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
               <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>College Affiliation *</label>
               <select
                 className="select-input"
-                style={{ width: '100%' }}
+                style={{ width: '100%', color: '#0f172a', backgroundColor: '#ffffff' }}
                 value={regData.collegeId}
                 onChange={(e) => setRegData({ ...regData, collegeId: Number(e.target.value) })}
               >
-                {colleges.map((c) => (
-                  <option key={c.collegeId} value={c.collegeId}>
+                {availableColleges.map((c) => (
+                  <option key={c.collegeId} value={c.collegeId} style={{ color: '#0f172a', backgroundColor: '#ffffff' }}>
                     {c.name} (@{c.emailDomain})
                   </option>
                 ))}
