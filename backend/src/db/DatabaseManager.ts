@@ -39,7 +39,16 @@ export class DatabaseManager {
       return this.getDb();
     }
 
-    const SQL = await initSqlJs();
+    const SQL = await initSqlJs({
+      locateFile: (file: string) => {
+        const localPath = path.join(__dirname, '../../node_modules/sql.js/dist', file);
+        if (fs.existsSync(localPath)) {
+          return localPath;
+        }
+        return `https://sql.js.org/dist/${file}`;
+      }
+    });
+
     if (fs.existsSync(this.dbPath)) {
       try {
         const fileBuffer = fs.readFileSync(this.dbPath);

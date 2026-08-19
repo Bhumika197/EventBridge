@@ -25,7 +25,8 @@ app.use(async (req, res, next) => {
     }
     next();
   } catch (err) {
-    next(err);
+    console.error('Serverless DB Init Error:', err);
+    next();
   }
 });
 
