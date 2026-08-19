@@ -62,54 +62,31 @@ export async function seedDatabase() {
   });
 
   const orgRCOEM = await userRepo.create({
-    name: 'Prof. Amit Verma (RCOEM Computer Club)',
+    name: 'Prof. Amit Verma (RCOEM Club)',
     username: 'org_rcoem',
     email: 'a.verma@rcoem.in',
     passwordHash: defaultPassword,
     collegeId: cRCOEM.collegeId,
-    phone: '+91-98765-0102',
+    phone: '+91-98765-0202',
     role: 'EVENT_ORGANIZER',
     status: 'ACTIVE'
   });
 
-  const orgNVU = await userRepo.create({
-    name: 'Dr. Alex Vance (NVU Tech)',
-    username: 'org_nvu',
-    email: 'alex.vance@nvu.edu',
-    passwordHash: defaultPassword,
-    collegeId: cNVU.collegeId,
-    phone: '+1-555-0101',
-    role: 'EVENT_ORGANIZER',
-    status: 'ACTIVE'
-  });
-
-  const orgGIT = await userRepo.create({
-    name: 'Prof. Maya Lin (GIT Hackathons)',
-    username: 'org_git',
-    email: 'maya.lin@git.edu',
-    passwordHash: defaultPassword,
-    collegeId: cGIT.collegeId,
-    phone: '+1-555-0102',
-    role: 'EVENT_ORGANIZER',
-    status: 'ACTIVE'
-  });
-
-  console.log('✅ Organizers created');
-
-  // 4. Seed Students
-  const sRBU = await userRepo.create({
+  // 4. Seed Primary Student Accounts
+  const studentBhumika = await userRepo.create({
     name: 'Bhumika Reddy',
     username: 'bhumika_rbu',
     email: 'bhumika@rbunagpur.in',
     passwordHash: defaultPassword,
     collegeId: cRBU.collegeId,
-    department: 'Computer Science & Engineering',
+    department: 'Computer Science',
     year: 3,
+    phone: '+91-98765-1111',
     role: 'STUDENT',
     status: 'ACTIVE'
   });
 
-  const sRCOEM = await userRepo.create({
+  const studentAarav = await userRepo.create({
     name: 'Aarav Deshmukh',
     username: 'aarav_rcoem',
     email: 'aarav@rcoem.in',
@@ -117,151 +94,86 @@ export async function seedDatabase() {
     collegeId: cRCOEM.collegeId,
     department: 'Information Technology',
     year: 2,
+    phone: '+91-98765-2222',
     role: 'STUDENT',
     status: 'ACTIVE'
   });
 
-  const sNVU = await userRepo.create({
-    name: 'Alice Johnson',
-    username: 'student_nvu',
-    email: 'alice@nvu.edu',
-    passwordHash: defaultPassword,
-    collegeId: cNVU.collegeId,
-    department: 'Computer Science',
-    year: 3,
-    role: 'STUDENT',
-    status: 'ACTIVE'
-  });
-
-  console.log('✅ Students created');
-
-  // 5. Seed Events
-  const eventsData = [
-    // --- Ramdeobaba University (RBU) Events ---
-    {
-      title: 'RBU National Hackathon 2026',
-      description: '36-hour inter-college AI & IoT hackathon at Ramdeobaba University Nagpur (@rbunagpur.in). Build innovative hardware and software prototypes.',
-      category: 'Technical',
-      eventType: 'INTER_COLLEGE' as const,
-      collegeId: cRBU.collegeId,
-      organizerId: orgRBU.userId,
-      organizerName: orgRBU.name,
-      date: '2026-09-20',
-      startTime: '09:00',
-      endTime: '21:00',
-      venue: 'RBU Main Auditorium & IT Block, Nagpur',
-      registrationDeadline: '2026-09-15T23:59',
-      capacity: 200,
-      registrationFee: 0,
-      eligibilityDescription: 'Open to engineering and technology students across all recognized universities.',
-      status: 'REGISTRATION_OPEN' as const,
-      contactInformation: 'r.sharma@rbunagpur.in | RBU Cell'
-    },
-    {
-      title: 'RBU Intra CSE Coding League',
-      description: 'Internal competitive programming battle for Ramdeobaba University Computer Science students.',
-      category: 'Technical',
-      eventType: 'INTRA_COLLEGE' as const,
-      collegeId: cRBU.collegeId,
-      organizerId: orgRBU.userId,
-      organizerName: orgRBU.name,
-      date: '2026-09-05',
-      startTime: '14:00',
-      endTime: '17:00',
-      venue: 'RBU Computer Center Lab 3',
-      registrationDeadline: '2026-09-03T23:59',
-      capacity: 60,
-      registrationFee: 0,
-      eligibilityDescription: 'STRICTLY restricted to Ramdeobaba University students.',
-      status: 'REGISTRATION_OPEN' as const,
-      contactInformation: 'bhumika@rbunagpur.in'
-    },
-
-    // --- RCOEM Events ---
-    {
-      title: 'RCOEM Pratishruti Inter-College Cultural Fest',
-      description: 'Annual flagship inter-college cultural fest at RCOEM Nagpur (@rcoem.in) featuring music, dance, and drama.',
-      category: 'Cultural',
-      eventType: 'INTER_COLLEGE' as const,
-      collegeId: cRCOEM.collegeId,
-      organizerId: orgRCOEM.userId,
-      organizerName: orgRCOEM.name,
-      date: '2026-10-10',
-      startTime: '10:00',
-      endTime: '22:00',
-      venue: 'RCOEM Campus Grounds, Gittikhadan, Nagpur',
-      registrationDeadline: '2026-10-05T23:59',
-      capacity: 300,
-      registrationFee: 5,
-      eligibilityDescription: 'Open to students across colleges with valid institutional ID card.',
-      status: 'REGISTRATION_OPEN' as const,
-      contactInformation: 'a.verma@rcoem.in'
-    },
-    {
-      title: 'RCOEM Intra Sports Championship',
-      description: 'Intra-college cricket, football, and badminton league for RCOEM students.',
-      category: 'Sports',
-      eventType: 'INTRA_COLLEGE' as const,
-      collegeId: cRCOEM.collegeId,
-      organizerId: orgRCOEM.userId,
-      organizerName: orgRCOEM.name,
-      date: '2026-09-25',
-      startTime: '08:00',
-      endTime: '18:00',
-      venue: 'RCOEM Sports Complex',
-      registrationDeadline: '2026-09-20T23:59',
-      capacity: 100,
-      registrationFee: 0,
-      eligibilityDescription: 'Restricted strictly to RCOEM Nagpur enrolled students.',
-      status: 'REGISTRATION_OPEN' as const,
-      contactInformation: 'sports@rcoem.in'
-    },
-
-    // --- Other Events ---
-    {
-      title: 'NVU Annual CodeSprint 2026',
-      description: '24-hour inter-college competitive programming hackathon.',
-      category: 'Technical',
-      eventType: 'INTER_COLLEGE' as const,
-      collegeId: cNVU.collegeId,
-      organizerId: orgNVU.userId,
-      organizerName: orgNVU.name,
-      date: '2026-09-15',
-      startTime: '09:00',
-      endTime: '21:00',
-      venue: 'NVU Turing Auditorium',
-      registrationDeadline: '2026-09-10T23:59',
-      capacity: 150,
-      registrationFee: 0,
-      eligibilityDescription: 'Open to all enrolled undergraduate students.',
-      status: 'REGISTRATION_OPEN' as const,
-      contactInformation: 'codesprint@nvu.edu'
-    },
-    {
-      title: 'RoboWars 2026 - Inter-College Combat',
-      description: 'Build your combat robot and test its durability in the steel cage arena.',
-      category: 'Technical',
-      eventType: 'INTER_COLLEGE' as const,
-      collegeId: cGIT.collegeId,
-      organizerId: orgGIT.userId,
-      organizerName: orgGIT.name,
-      date: '2026-10-12',
-      startTime: '10:00',
-      endTime: '18:00',
-      venue: 'GIT Robotics Arena',
-      registrationDeadline: '2026-10-01T23:59',
-      capacity: 50,
-      registrationFee: 20,
-      eligibilityDescription: 'Engineering students across technical institutes.',
-      status: 'REGISTRATION_OPEN' as const,
-      contactInformation: 'robowars@git.edu'
-    }
-  ];
-
-  for (const ed of eventsData) {
-    await eventService.createEvent(ed);
+  // 5. Seed 15 Additional Concurrent Student Accounts (student1 - student15)
+  for (let i = 1; i <= 15; i++) {
+    const isRbu = i % 2 === 1;
+    const cid = isRbu ? cRBU.collegeId : cRCOEM.collegeId;
+    const domain = isRbu ? 'rbunagpur.in' : 'rcoem.in';
+    const colName = isRbu ? 'RBU' : 'RCOEM';
+    await userRepo.create({
+      name: `Student Participant ${i} (${colName})`,
+      username: `student${i}`,
+      email: `student${i}@${domain}`,
+      passwordHash: defaultPassword,
+      collegeId: cid,
+      department: i % 2 === 0 ? 'Computer Science' : 'Electronics',
+      year: (i % 4) + 1,
+      role: 'STUDENT',
+      status: 'ACTIVE'
+    });
   }
 
-  console.log('✅ Events created via Factory Method & Abstract Factory');
-  console.log('🎉 Database Seeding Complete!');
+  console.log('✅ 17 Student Accounts (bhumika_rbu, aarav_rcoem, student1 - student15) seeded successfully!');
+
+  // 6. Seed Sample Events via Factory Method
+  await eventService.createEvent({
+    title: 'HackRBU 2026: National AI Hackathon',
+    description: '48-hour inter-college AI & Web3 hackathon hosted by Ramdeobaba University. Open to all colleges across India.',
+    category: 'Technical',
+    eventType: 'INTER_COLLEGE',
+    collegeId: cRBU.collegeId,
+    organizerId: orgRBU.userId,
+    organizerName: orgRBU.name,
+    date: '2026-09-15',
+    startTime: '09:00 AM',
+    endTime: '05:00 PM',
+    venue: 'Main Auditorium, RBU Campus, Nagpur',
+    registrationDeadline: '2026-09-10',
+    capacity: 250,
+    registrationFee: 0.0,
+    contactInformation: 'hackathon@rbunagpur.in'
+  });
+
+  await eventService.createEvent({
+    title: 'Pratibha 2026: RCOEM Annual Cultural Fest',
+    description: 'Grand intra-college cultural festival featuring battle of bands, dance drama, and fashion show for RCOEM students.',
+    category: 'Cultural',
+    eventType: 'INTRA_COLLEGE',
+    collegeId: cRCOEM.collegeId,
+    organizerId: orgRCOEM.userId,
+    organizerName: orgRCOEM.name,
+    date: '2026-10-05',
+    startTime: '10:00 AM',
+    endTime: '09:00 PM',
+    venue: 'Open Air Theatre, RCOEM, Nagpur',
+    registrationDeadline: '2026-10-01',
+    capacity: 500,
+    registrationFee: 150.0,
+    contactInformation: 'pratibha@rcoem.in'
+  });
+
+  await eventService.createEvent({
+    title: 'Inter-University Cricket Championship 2026',
+    description: 'Inter-college T20 tournament between engineering and university teams of Central India.',
+    category: 'Sports',
+    eventType: 'INTER_COLLEGE',
+    collegeId: cRCOEM.collegeId,
+    organizerId: orgRCOEM.userId,
+    organizerName: orgRCOEM.name,
+    date: '2026-11-12',
+    startTime: '08:00 AM',
+    endTime: '06:00 PM',
+    venue: 'RCOEM Sports Complex, Nagpur',
+    registrationDeadline: '2026-11-05',
+    capacity: 16,
+    registrationFee: 500.0,
+    contactInformation: 'sports@rcoem.in'
+  });
+
+  console.log('✅ Events created via Factory Method Pattern');
 }

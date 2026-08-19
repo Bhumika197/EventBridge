@@ -2,7 +2,6 @@ package com.eventbridge.seed;
 
 import com.eventbridge.db.DatabaseManager;
 import com.eventbridge.model.College;
-import com.eventbridge.model.User;
 import com.eventbridge.repository.CollegeRepository;
 import com.eventbridge.repository.UserRepository;
 
@@ -36,9 +35,6 @@ public class JavaSeedData {
             College cCAC = collegeRepo.create("City Arts College", "CAC", "Downtown Metro", "cac.edu");
             College cNBC = collegeRepo.create("National Business College", "NBC", "Financial Center", "nbc.edu");
 
-            System.out.println("✅ 6 Institutional Colleges seeded in Java (RBU @rbunagpur.in, RCOEM @rcoem.in, NVU, GIT, CAC, NBC)");
-
-            // Dummy bcrypt-styled password representation for plain match / password123
             String defaultPwd = "password123";
             String adminPwd = "admin123";
 
@@ -50,7 +46,15 @@ public class JavaSeedData {
             userRepo.create("Bhumika Reddy", "bhumika_rbu", "bhumika@rbunagpur.in", defaultPwd, cRBU.getCollegeId(), "STUDENT");
             userRepo.create("Aarav Deshmukh", "aarav_rcoem", "aarav@rcoem.in", defaultPwd, cRCOEM.getCollegeId(), "STUDENT");
 
-            System.out.println("✅ Java Database Seeding Complete!");
+            // Seed student1 through student15 for 20 concurrent users
+            for (int i = 1; i <= 15; i++) {
+                boolean isRbu = (i % 2 == 1);
+                int cid = isRbu ? cRBU.getCollegeId() : cRCOEM.getCollegeId();
+                String domain = isRbu ? "rbunagpur.in" : "rcoem.in";
+                userRepo.create("Student Participant " + i, "student" + i, "student" + i + "@" + domain, defaultPwd, cid, "STUDENT");
+            }
+
+            System.out.println("✅ Java Database Seeding Complete for 20 Concurrent Users!");
         } catch (Exception e) {
             System.err.println("Error seeding Java Database: " + e.getMessage());
         }
