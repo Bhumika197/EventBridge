@@ -15,9 +15,14 @@ export class DatabaseManager {
   private dbPath: string;
 
   private constructor() {
-    const dataDir = path.join(__dirname, '../../data');
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
+    const isVercel = Boolean(process.env.VERCEL);
+    const dataDir = isVercel ? '/tmp' : path.join(__dirname, '../../data');
+    if (!fs.existsSync(dataDir) && !isVercel) {
+      try {
+        fs.mkdirSync(dataDir, { recursive: true });
+      } catch (e) {
+        // ignore if read-only
+      }
     }
     this.dbPath = path.join(dataDir, 'eventbridge.db');
   }
@@ -36,8 +41,12 @@ export class DatabaseManager {
 
     const SQL = await initSqlJs();
     if (fs.existsSync(this.dbPath)) {
-      const fileBuffer = fs.readFileSync(this.dbPath);
-      this.db = new SQL.Database(fileBuffer);
+      try {
+        const fileBuffer = fs.readFileSync(this.dbPath);
+        this.db = new SQL.Database(fileBuffer);
+      } catch (e) {
+        this.db = new SQL.Database();
+      }
     } else {
       this.db = new SQL.Database();
     }
@@ -49,9 +58,13 @@ export class DatabaseManager {
 
   private saveToDisk() {
     if (this.db) {
-      const data = this.db.export();
-      const buffer = Buffer.from(data);
-      fs.writeFileSync(this.dbPath, buffer);
+      try {
+        const data = this.db.export();
+        const buffer = Buffer.from(data);
+        fs.writeFileSync(this.dbPath, buffer);
+      } catch (err) {
+        // Serverless memory fallback if disk is read-only
+      }
     }
   }
 

@@ -13,6 +13,22 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// Initialize DB middleware for serverless invocations
+app.use(async (req, res, next) => {
+  try {
+    const dbManager = DatabaseManager.getInstance();
+    await dbManager.initialize();
+    const db = dbManager.getDb();
+    const collegeCount = await db.get<{ count: number }>('SELECT COUNT(*) as count FROM COLLEGE');
+    if (!collegeCount || collegeCount.count === 0) {
+      await seedDatabase();
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
 // API Routes
 app.use('/api', apiRoutes);
 
@@ -26,28 +42,12 @@ app.get('/', (req, res) => {
   });
 });
 
-async function startServer() {
-  try {
-    const dbManager = DatabaseManager.getInstance();
-    await dbManager.initialize();
-
-    // Auto-seed if database is fresh
-    const db = dbManager.getDb();
-    const collegeCount = await db.get<{ count: number }>('SELECT COUNT(*) as count FROM COLLEGE');
-    if (!collegeCount || collegeCount.count === 0) {
-      console.log('Database empty. Running seed setup...');
-      await seedDatabase();
-    }
-
-    app.listen(PORT, () => {
-      console.log(`==================================================`);
-      console.log(`🚀 EventBridge Backend Server running on http://localhost:${PORT}`);
-      console.log(`==================================================`);
-    });
-  } catch (err) {
-    console.error('Failed to start EventBridge backend server:', err);
-    process.exit(1);
-  }
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`==================================================`);
+    console.log(`🚀 EventBridge Backend Server running on http://localhost:${PORT}`);
+    console.log(`==================================================`);
+  });
 }
 
-startServer();
+export default app;
