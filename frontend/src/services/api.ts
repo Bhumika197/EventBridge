@@ -11,14 +11,39 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers
+    });
+  } catch {
+    throw new Error('Unable to connect to the backend server. Please ensure the server is running on http://localhost:5000.');
+  }
 
-  const json = await res.json();
+  const contentType = res.headers.get('content-type') || '';
+  let json: any = null;
+
+  if (contentType.includes('application/json')) {
+    try {
+      json = await res.json();
+    } catch {
+      throw new Error(`Server returned invalid JSON (${res.status} ${res.statusText})`);
+    }
+  } else {
+    const text = await res.text();
+    if (!res.ok) {
+      const isHtml = text.includes('<html') || text.includes('<!DOCTYPE') || text.includes('<body');
+      const cleanMessage = isHtml
+        ? `Server error (${res.status} ${res.statusText || 'Internal Server Error'}). Please ensure the backend server is running.`
+        : (text.slice(0, 200) || `Server error (${res.status} ${res.statusText})`);
+      throw new Error(cleanMessage);
+    }
+    return text;
+  }
+
   if (!res.ok && !json.restricted && !json.handlerName) {
-    throw new Error(json.message || json.reason || 'API Request Failed');
+    throw new Error(json.message || json.reason || `API Request Failed (${res.status})`);
   }
   return json;
 }

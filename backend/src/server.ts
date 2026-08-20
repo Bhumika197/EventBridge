@@ -24,22 +24,35 @@ app.use(async (req, res, next) => {
       await seedDatabase();
     }
     next();
-  } catch (err) {
-    console.error('Serverless DB Init Error:', err);
-    next();
+  } catch (err: any) {
+    console.error('Server DB Init Error:', err);
+    return res.status(500).json({
+      success: false,
+      message: `Database initialization failed: ${err?.message || 'Unknown database error'}`
+    });
   }
 });
 
-// API Routes
+// API Routes (mounted on both /api and / to handle all Vercel rewrite modes)
 app.use('/api', apiRoutes);
+app.use('/', apiRoutes);
 
 // Root Status
-app.get('/', (req, res) => {
+app.get('/status', (req, res) => {
   res.json({
     message: 'Welcome to EventBridge API Server',
     status: 'ONLINE',
     version: '1.0.0',
     documentation: '/api/patterns'
+  });
+});
+
+// Global JSON Error Handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled Server Error:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal Server Error'
   });
 });
 

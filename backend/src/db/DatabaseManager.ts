@@ -34,20 +34,72 @@ export class DatabaseManager {
     return DatabaseManager.instance;
   }
 
+  private async loadWasmBinary(): Promise<Buffer | Uint8Array | undefined> {
+    const potentialPaths = [
+      path.join(__dirname, '../../node_modules/sql.js/dist/sql-wasm.wasm'),
+      path.join(__dirname, '../node_modules/sql.js/dist/sql-wasm.wasm'),
+      path.join(__dirname, 'node_modules/sql.js/dist/sql-wasm.wasm'),
+      path.join(process.cwd(), 'node_modules/sql.js/dist/sql-wasm.wasm'),
+      path.join(process.cwd(), 'backend/node_modules/sql.js/dist/sql-wasm.wasm')
+    ];
+    for (const p of potentialPaths) {
+      if (fs.existsSync(p)) {
+        try {
+          return fs.readFileSync(p);
+        } catch {
+          // ignore
+        }
+      }
+    }
+    try {
+      const resolved = require.resolve('sql.js/dist/sql-wasm.wasm');
+      if (fs.existsSync(resolved)) {
+        return fs.readFileSync(resolved);
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
+      const resp = await fetch('https://sql.js.org/dist/sql-wasm.wasm');
+      if (resp.ok) {
+        const arrayBuf = await resp.arrayBuffer();
+        return Buffer.from(arrayBuf);
+      }
+    } catch {
+      // ignore
+    }
+    return undefined;
+  }
+
   public async initialize(): Promise<CustomDatabase> {
     if (this.db) {
       return this.getDb();
     }
 
-    const SQL = await initSqlJs({
-      locateFile: (file: string) => {
-        const localPath = path.join(__dirname, '../../node_modules/sql.js/dist', file);
-        if (fs.existsSync(localPath)) {
-          return localPath;
+    const wasmBinary = await this.loadWasmBinary();
+    const config: any = {};
+    if (wasmBinary) {
+      config.wasmBinary = wasmBinary;
+    } else {
+      config.locateFile = (file: string) => {
+        const potentialPaths = [
+          path.join(__dirname, '../../node_modules/sql.js/dist', file),
+          path.join(__dirname, '../node_modules/sql.js/dist', file),
+          path.join(__dirname, 'node_modules/sql.js/dist', file),
+          path.join(process.cwd(), 'node_modules/sql.js/dist', file),
+          path.join(process.cwd(), 'backend/node_modules/sql.js/dist', file)
+        ];
+        for (const p of potentialPaths) {
+          if (fs.existsSync(p)) {
+            return p;
+          }
         }
-        return `https://sql.js.org/dist/${file}`;
-      }
-    });
+        return file;
+      };
+    }
+
+    const SQL = await initSqlJs(config);
 
     if (fs.existsSync(this.dbPath)) {
       try {

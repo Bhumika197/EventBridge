@@ -1,13 +1,16 @@
 {
-  "name": "eventbridge-backend",
+  "name": "eventbridge",
   "version": "1.0.0",
-  "description": "EventBridge Backend with Design Patterns and SQLite",
-  "main": "dist/server.js",
+  "private": true,
+  "description": "EventBridge: Multi-College Event Management Platform",
   "scripts": {
-    "dev": "ts-node src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "seed": "ts-node src/seed/runSeed.ts"
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build": "cd backend && npm install && npm run build && cd ../frontend && npm install && npm run build",
+    "seed": "cd backend && npm run seed"
   },
   "dependencies": {
     "@types/nodemailer": "^8.0.1",
@@ -26,6 +29,7 @@
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.12.7",
+    "concurrently": "^8.2.2",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.4.5"
