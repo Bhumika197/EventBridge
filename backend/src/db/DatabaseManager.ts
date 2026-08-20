@@ -117,15 +117,40 @@ export class DatabaseManager {
     return this.getDb();
   }
 
-  private saveToDisk() {
-    if (this.db) {
+  private saveTimeout: NodeJS.Timeout | null = null;
+  private opQueue: Promise<any> = Promise.resolve();
+
+  private enqueue<T>(op: () => T | Promise<T>): Promise<T> {
+    const nextOp = this.opQueue.then(op, op);
+    this.opQueue = nextOp.catch(() => {});
+    return nextOp;
+  }
+
+  private saveToDisk(immediate = false) {
+    if (!this.db) return;
+
+    const doSave = () => {
       try {
+        if (!this.db) return;
         const data = this.db.export();
         const buffer = Buffer.from(data);
         fs.writeFileSync(this.dbPath, buffer);
       } catch (err) {
         // Serverless memory fallback if disk is read-only
       }
+    };
+
+    if (immediate) {
+      if (this.saveTimeout) {
+        clearTimeout(this.saveTimeout);
+        this.saveTimeout = null;
+      }
+      doSave();
+    } else if (!this.saveTimeout) {
+      this.saveTimeout = setTimeout(() => {
+        this.saveTimeout = null;
+        doSave();
+      }, 50);
     }
   }
 
@@ -138,46 +163,54 @@ export class DatabaseManager {
     const rawDb = this.db;
 
     return {
-      async exec(sql: string): Promise<void> {
-        rawDb.exec(sql);
-        self.saveToDisk();
+      exec(sql: string): Promise<void> {
+        return self.enqueue(() => {
+          rawDb.exec(sql);
+          self.saveToDisk();
+        });
       },
 
-      async all<T = any>(sql: string, params: any[] = []): Promise<T> {
-        const stmt = rawDb.prepare(sql);
-        stmt.bind(params);
-        const results: any[] = [];
-        while (stmt.step()) {
-          results.push(stmt.getAsObject());
-        }
-        stmt.free();
-        return results as unknown as T;
-      },
-
-      async get<T = any>(sql: string, params: any[] = []): Promise<T | undefined> {
-        const stmt = rawDb.prepare(sql);
-        stmt.bind(params);
-        let row: any = undefined;
-        if (stmt.step()) {
-          row = stmt.getAsObject();
-        }
-        stmt.free();
-        return row;
-      },
-
-      async run(sql: string, params: any[] = []): Promise<{ lastID?: number; changes?: number }> {
-        rawDb.run(sql, params);
-        let lastID: number | undefined;
-        try {
-          const res = rawDb.exec('SELECT last_insert_rowid() as id');
-          if (res.length > 0 && res[0].values.length > 0 && res[0].values[0][0]) {
-            lastID = Number(res[0].values[0][0]);
+      all<T = any>(sql: string, params: any[] = []): Promise<T> {
+        return self.enqueue(() => {
+          const stmt = rawDb.prepare(sql);
+          stmt.bind(params);
+          const results: any[] = [];
+          while (stmt.step()) {
+            results.push(stmt.getAsObject());
           }
-        } catch (e) {
-          // ignore
-        }
-        self.saveToDisk();
-        return { lastID, changes: 1 };
+          stmt.free();
+          return results as unknown as T;
+        });
+      },
+
+      get<T = any>(sql: string, params: any[] = []): Promise<T | undefined> {
+        return self.enqueue(() => {
+          const stmt = rawDb.prepare(sql);
+          stmt.bind(params);
+          let row: any = undefined;
+          if (stmt.step()) {
+            row = stmt.getAsObject();
+          }
+          stmt.free();
+          return row;
+        });
+      },
+
+      run(sql: string, params: any[] = []): Promise<{ lastID?: number; changes?: number }> {
+        return self.enqueue(() => {
+          rawDb.run(sql, params);
+          let lastID: number | undefined;
+          try {
+            const res = rawDb.exec('SELECT last_insert_rowid() as id');
+            if (res.length > 0 && res[0].values.length > 0 && res[0].values[0][0]) {
+              lastID = Number(res[0].values[0][0]);
+            }
+          } catch (e) {
+            // ignore
+          }
+          self.saveToDisk();
+          return { lastID, changes: 1 };
+        });
       }
     };
   }

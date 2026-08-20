@@ -49,7 +49,7 @@ export async function seedDatabase() {
     status: 'ACTIVE'
   });
 
-  // 3. Seed Organizers
+  // 3. Seed Organizers (4 Institutional Organizers)
   const orgRBU = await userRepo.create({
     name: 'Dr. Rajesh Sharma (RBU Tech Cell)',
     username: 'org_rbu',
@@ -72,7 +72,29 @@ export async function seedDatabase() {
     status: 'ACTIVE'
   });
 
-  // 4. Seed Primary Student Accounts
+  const orgNVU = await userRepo.create({
+    name: 'Dr. Sarah Jenkins (NVU Computing)',
+    username: 'org_nvu',
+    email: 's.jenkins@nvu.edu',
+    passwordHash: defaultPassword,
+    collegeId: cNVU.collegeId,
+    phone: '+1-555-0103',
+    role: 'EVENT_ORGANIZER',
+    status: 'ACTIVE'
+  });
+
+  const orgGIT = await userRepo.create({
+    name: 'Prof. Michael Chang (GIT Robotics)',
+    username: 'org_git',
+    email: 'm.chang@git.edu',
+    passwordHash: defaultPassword,
+    collegeId: cGIT.collegeId,
+    phone: '+1-555-0104',
+    role: 'EVENT_ORGANIZER',
+    status: 'ACTIVE'
+  });
+
+  // 4. Seed Primary Student Accounts (2 Users)
   const studentBhumika = await userRepo.create({
     name: 'Bhumika Reddy',
     username: 'bhumika_rbu',
@@ -99,26 +121,39 @@ export async function seedDatabase() {
     status: 'ACTIVE'
   });
 
-  // 5. Seed 15 Additional Concurrent Student Accounts (student1 - student15)
-  for (let i = 1; i <= 15; i++) {
-    const isRbu = i % 2 === 1;
-    const cid = isRbu ? cRBU.collegeId : cRCOEM.collegeId;
-    const domain = isRbu ? 'rbunagpur.in' : 'rcoem.in';
-    const colName = isRbu ? 'RBU' : 'RCOEM';
+  // 5. Seed 93 Additional Student Accounts (student1 - student93)
+  // Total Users = 1 (Admin) + 4 (Organizers) + 2 (Primary Students) + 93 (Students) = 100 TOTAL USERS
+  const collegesList = [
+    { id: cRBU.collegeId, domain: 'rbunagpur.in', name: 'RBU' },
+    { id: cRCOEM.collegeId, domain: 'rcoem.in', name: 'RCOEM' },
+    { id: cNVU.collegeId, domain: 'nvu.edu', name: 'NVU' },
+    { id: cGIT.collegeId, domain: 'git.edu', name: 'GIT' },
+    { id: cCAC.collegeId, domain: 'cac.edu', name: 'CAC' },
+    { id: cNBC.collegeId, domain: 'nbc.edu', name: 'NBC' }
+  ];
+
+  const departments = ['Computer Science', 'Information Technology', 'Electronics', 'Mechanical', 'Management', 'Design'];
+
+  for (let i = 1; i <= 93; i++) {
+    const col = collegesList[(i - 1) % collegesList.length];
+    const dept = departments[(i - 1) % departments.length];
+    const yr = ((i - 1) % 4) + 1;
+
     await userRepo.create({
-      name: `Student Participant ${i} (${colName})`,
+      name: `Student ${i} (${col.name})`,
       username: `student${i}`,
-      email: `student${i}@${domain}`,
+      email: `student${i}@${col.domain}`,
       passwordHash: defaultPassword,
-      collegeId: cid,
-      department: i % 2 === 0 ? 'Computer Science' : 'Electronics',
-      year: (i % 4) + 1,
+      collegeId: col.id,
+      department: dept,
+      year: yr,
+      phone: `+91-98760-${String(i).padStart(4, '0')}`,
       role: 'STUDENT',
       status: 'ACTIVE'
     });
   }
 
-  console.log('✅ 17 Student Accounts (bhumika_rbu, aarav_rcoem, student1 - student15) seeded successfully!');
+  console.log('✅ Exactly 100 Total User Accounts Seeded: 1 Admin, 4 Organizers, 95 Students (bhumika_rbu, aarav_rcoem, student1 - student93)');
 
   // 6. Seed Sample Events via Factory Method
   await eventService.createEvent({

@@ -13,7 +13,7 @@ export class UserRepository {
     return db.get<User>(
       `SELECT u.*, c.name as collegeName 
        FROM USER u 
-       JOIN COLLEGE c ON u.collegeId = c.collegeId 
+       LEFT JOIN COLLEGE c ON u.collegeId = c.collegeId 
        WHERE u.userId = ?`,
       [userId]
     );
@@ -24,7 +24,7 @@ export class UserRepository {
     return db.get<User>(
       `SELECT u.*, c.name as collegeName 
        FROM USER u 
-       JOIN COLLEGE c ON u.collegeId = c.collegeId 
+       LEFT JOIN COLLEGE c ON u.collegeId = c.collegeId 
        WHERE u.username = ?`,
       [username]
     );
@@ -35,7 +35,7 @@ export class UserRepository {
     return db.get<User>(
       `SELECT u.*, c.name as collegeName 
        FROM USER u 
-       JOIN COLLEGE c ON u.collegeId = c.collegeId 
+       LEFT JOIN COLLEGE c ON u.collegeId = c.collegeId 
        WHERE u.email = ?`,
       [email]
     );
@@ -46,7 +46,7 @@ export class UserRepository {
     return db.all<User[]>(
       `SELECT u.*, c.name as collegeName 
        FROM USER u 
-       JOIN COLLEGE c ON u.collegeId = c.collegeId 
+       LEFT JOIN COLLEGE c ON u.collegeId = c.collegeId 
        ORDER BY u.userId DESC`
     );
   }

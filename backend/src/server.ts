@@ -13,16 +13,31 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize DB middleware for serverless invocations
+// Singleton initialization promise to prevent race conditions during high concurrency
+let initPromise: Promise<void> | null = null;
+
+function ensureDbInitialized(): Promise<void> {
+  if (!initPromise) {
+    initPromise = (async () => {
+      const dbManager = DatabaseManager.getInstance();
+      await dbManager.initialize();
+      const db = dbManager.getDb();
+      const userCount = await db.get<{ count: number }>('SELECT COUNT(*) as count FROM USER');
+      if (!userCount || userCount.count < 100) {
+        await seedDatabase();
+      }
+    })().catch((err) => {
+      initPromise = null; // allow retry if failed
+      throw err;
+    });
+  }
+  return initPromise;
+}
+
+// Initialize DB middleware for serverless and concurrent invocations
 app.use(async (req, res, next) => {
   try {
-    const dbManager = DatabaseManager.getInstance();
-    await dbManager.initialize();
-    const db = dbManager.getDb();
-    const collegeCount = await db.get<{ count: number }>('SELECT COUNT(*) as count FROM COLLEGE');
-    if (!collegeCount || collegeCount.count === 0) {
-      await seedDatabase();
-    }
+    await ensureDbInitialized();
     next();
   } catch (err: any) {
     console.error('Server DB Init Error:', err);
