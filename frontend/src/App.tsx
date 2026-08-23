@@ -209,7 +209,7 @@ const MainApp: React.FC = () => {
 
       {/* Footer */}
       <footer style={{ background: '#ffffff', borderTop: '1px solid #e2e8f0', padding: '1.5rem', textAlign: 'center', fontSize: '0.85rem', color: '#64748b', marginTop: 'auto' }}>
-        EventBridge Inter-College Discovery & Registration Platform • Software Engineering Architecture Project 2026
+        EventBridge
       </footer>
 
       {/* Modals */}
