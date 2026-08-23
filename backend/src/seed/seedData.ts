@@ -122,6 +122,19 @@ export async function seedDatabase() {
     status: 'ACTIVE'
   });
 
+  const studentAlex = await userRepo.create({
+    name: 'Alex Sharma',
+    username: 'alexs',
+    email: 'alexs@rbunagpur.in',
+    passwordHash: defaultPassword,
+    collegeId: cRBU.collegeId,
+    department: 'Computer Science',
+    year: 2,
+    phone: '+91-98765-3333',
+    role: 'STUDENT',
+    status: 'ACTIVE'
+  });
+
   // 5. Seed Additional Student Accounts
   const collegesList = [
     { id: cRBU.collegeId, domain: 'rbunagpur.in', name: 'RBU' },
