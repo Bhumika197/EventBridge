@@ -1,12 +1,5 @@
 # EventBridge — University Event Discovery & Registration Platform
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-event--bridge--beta.vercel.app-blue?style=for-the-badge&logo=vercel)](https://event-bridge-beta.vercel.app/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.4-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
-[![Express](https://img.shields.io/badge/Node%20Express-4.19-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
-[![SQLite](https://img.shields.io/badge/SQLite-WASM-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org/)
-[![Tests](https://img.shields.io/badge/Tests-5%2F5%20Passing%20(100%25)-10b981?style=for-the-badge&logo=jest&logoColor=white)](https://github.com/Bhumika197/EventBridge)
-
 EventBridge is a full-stack web application designed to solve the fragmented event discovery and registration process across collegiate campuses. It provides institutional isolation, granular access control, registration validation, and automated FIFO waitlist management.
 
 ---
