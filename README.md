@@ -4,7 +4,7 @@ EventBridge is a full-stack web application designed to solve the fragmented eve
 
 ---
 
-## 🌐 Live Deployment & Demo
+## Live Deployment & Demo
 
 🚀 **Production Web App:** [https://event-bridge-beta.vercel.app/](https://event-bridge-beta.vercel.app/)
 
@@ -12,7 +12,7 @@ The application is deployed on **Vercel** with full client-side React routing an
 
 ---
 
-## 🔑 Demo Accounts
+## Demo Accounts
 
 All demo accounts share the password: `password123` (Admin: `admin123`).
 
@@ -76,9 +76,9 @@ In collegiate ecosystems, campus event discovery and attendance management suffe
 
 ---
 
-## ✨ Core Features & Workflows
+## Core Features & Workflows
 
-### 1. Waitlist & Automatic FIFO Promotion (Hero Feature)
+### 1. Waitlist & Automatic FIFO Promotion 
 When an event reaches capacity limit (`currentRegistrations >= capacity`):
 - Additional registrants are automatically placed on a FIFO waitlist (`status = 'WAITLISTED'`) and assigned a real-time queue position (`queuePosition = 1, 2, 3...`).
 - When a confirmed attendee cancels their registration, `WaitlistService` immediately and atomically promotes the student at the front of the queue (`queuePosition = 1`) to `CONFIRMED`.
@@ -155,7 +155,7 @@ The `EventAccessProxy` intercepts all data-layer repository queries:
 
 ---
 
-## 💡 Key Design Decisions & Rationale
+## Key Design Decisions & Rationale
 
 | Pattern | Where Applied | Why Used (Direct Technical Rationale) |
 | :--- | :--- | :--- |
