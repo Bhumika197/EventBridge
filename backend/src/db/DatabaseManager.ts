@@ -1,18 +1,22 @@
 import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
 import path from 'path';
 import fs from 'fs';
+import { logger } from '../utils/logger';
 
 export interface CustomDatabase {
   exec(sql: string): Promise<void>;
   all<T = any>(sql: string, params?: any[]): Promise<T>;
   get<T = any>(sql: string, params?: any[]): Promise<T | undefined>;
   run(sql: string, params?: any[]): Promise<{ lastID?: number; changes?: number }>;
+  transaction<T>(fn: (db: CustomDatabase) => Promise<T>): Promise<T>;
 }
 
 export class DatabaseManager {
   private static instance: DatabaseManager | null = null;
   private db: SqlJsDatabase | null = null;
   private dbPath: string;
+  private saveTimeout: NodeJS.Timeout | null = null;
+  private opQueue: Promise<any> = Promise.resolve();
 
   private constructor() {
     const isVercel = Boolean(process.env.VERCEL);
@@ -113,12 +117,9 @@ export class DatabaseManager {
     }
 
     await this.createTables();
-    this.saveToDisk();
+    this.saveToDisk(true);
     return this.getDb();
   }
-
-  private saveTimeout: NodeJS.Timeout | null = null;
-  private opQueue: Promise<any> = Promise.resolve();
 
   private enqueue<T>(op: () => T | Promise<T>): Promise<T> {
     const nextOp = this.opQueue.then(op, op);
@@ -162,7 +163,7 @@ export class DatabaseManager {
     const self = this;
     const rawDb = this.db;
 
-    return {
+    const customDb: CustomDatabase = {
       exec(sql: string): Promise<void> {
         return self.enqueue(() => {
           rawDb.exec(sql);
@@ -211,8 +212,29 @@ export class DatabaseManager {
           self.saveToDisk();
           return { lastID, changes: 1 };
         });
+      },
+
+      async transaction<T>(fn: (db: CustomDatabase) => Promise<T>): Promise<T> {
+        return self.enqueue(async () => {
+          try {
+            rawDb.exec('BEGIN TRANSACTION;');
+            const result = await fn(customDb);
+            rawDb.exec('COMMIT;');
+            self.saveToDisk();
+            return result;
+          } catch (err) {
+            try {
+              rawDb.exec('ROLLBACK;');
+            } catch (rollbackErr) {
+              // ignore
+            }
+            throw err;
+          }
+        });
       }
     };
+
+    return customDb;
   }
 
   private async createTables(): Promise<void> {
@@ -257,12 +279,16 @@ export class DatabaseManager {
         startTime TEXT NOT NULL,
         endTime TEXT NOT NULL,
         venue TEXT NOT NULL,
+        registrationStartTime TEXT,
         registrationDeadline TEXT NOT NULL,
         capacity INTEGER NOT NULL,
         currentRegistrations INTEGER NOT NULL DEFAULT 0,
         registrationFee REAL NOT NULL DEFAULT 0.0,
         eligibilityDescription TEXT NOT NULL,
-        status TEXT NOT NULL CHECK(status IN ('DRAFT', 'PUBLISHED', 'REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'FULL', 'ONGOING', 'COMPLETED', 'CANCELLED')),
+        status TEXT NOT NULL CHECK(status IN ('DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'PUBLISHED', 'COMPLETED', 'CANCELLED')),
+        rejectionReason TEXT,
+        reviewedBy INTEGER,
+        reviewedAt DATETIME,
         contactInformation TEXT NOT NULL,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
       );
@@ -272,7 +298,8 @@ export class DatabaseManager {
         eventId INTEGER NOT NULL,
         studentId INTEGER NOT NULL,
         registeredAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-        status TEXT NOT NULL DEFAULT 'CONFIRMED' CHECK(status IN ('PENDING', 'CONFIRMED', 'CANCELLED', 'REJECTED')),
+        status TEXT NOT NULL DEFAULT 'CONFIRMED' CHECK(status IN ('CONFIRMED', 'WAITLISTED', 'CANCELLED', 'REJECTED')),
+        queuePosition INTEGER DEFAULT NULL,
         UNIQUE(eventId, studentId)
       );
 
@@ -298,12 +325,32 @@ export class DatabaseManager {
         status TEXT NOT NULL DEFAULT 'PENDING',
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
       );
+    `);
 
-      CREATE TABLE IF NOT EXISTS EVENT_CATEGORY (
-        categoryId INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE,
-        description TEXT
-      );
+    // Migration safe guards for existing disk databases
+    const migrations = [
+      'ALTER TABLE REGISTRATION ADD COLUMN queuePosition INTEGER DEFAULT NULL',
+      'ALTER TABLE EVENT ADD COLUMN registrationStartTime TEXT',
+      'ALTER TABLE EVENT ADD COLUMN rejectionReason TEXT',
+      'ALTER TABLE EVENT ADD COLUMN reviewedBy INTEGER',
+      'ALTER TABLE EVENT ADD COLUMN reviewedAt DATETIME'
+    ];
+
+    for (const mig of migrations) {
+      try {
+        this.db.exec(mig);
+      } catch (e) {
+        // column already exists
+      }
+    }
+
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_event_college ON EVENT(collegeId);
+      CREATE INDEX IF NOT EXISTS idx_event_status ON EVENT(status);
+      CREATE INDEX IF NOT EXISTS idx_event_date ON EVENT(date);
+      CREATE INDEX IF NOT EXISTS idx_reg_event_student ON REGISTRATION(eventId, studentId);
+      CREATE INDEX IF NOT EXISTS idx_reg_waitlist ON REGISTRATION(eventId, status, queuePosition);
+      CREATE INDEX IF NOT EXISTS idx_notif_user ON NOTIFICATION(userId, readStatus);
     `);
   }
 }

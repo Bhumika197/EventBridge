@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { EventCard, EventCardData } from '../components/EventCard';
 import { EventDetailModal } from '../components/EventDetailModal';
 import { ContactOrganizerModal } from '../components/ContactOrganizerModal';
-import { Search, Filter, Calendar, Sparkles, Building, CheckCircle, Clock } from 'lucide-react';
+import { Search, Filter, Calendar, Sparkles, Building, CheckCircle, Clock, Ban } from 'lucide-react';
 
 interface StudentDashboardProps {
   initialTab?: string;
@@ -59,9 +59,14 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ initialTab =
   }, [user]);
 
   const handleCancelReg = async (regId: number) => {
-    if (window.confirm('Are you sure you want to cancel your registration?')) {
+    if (window.confirm('Are you sure you want to cancel this registration? If a waitlisted student is queued, they will be automatically promoted.')) {
       try {
-        await api.cancelRegistration(regId);
+        const res = await api.cancelRegistration(regId);
+        if (res.promotedWaitlistedStudent) {
+          alert('Registration cancelled. The next waitlisted student has been automatically promoted to CONFIRMED!');
+        } else {
+          alert('Registration cancelled successfully.');
+        }
         loadData();
       } catch (err: any) {
         alert(err.message || 'Failed to cancel registration');
@@ -98,170 +103,189 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ initialTab =
     <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '1.5rem 1rem' }}>
       {/* Welcome Banner for logged-in user */}
       {user && (
-        <div
-          className="glass-panel"
-          style={{
-            padding: '1.5rem 2rem',
-            marginBottom: '2rem',
-            background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(6,182,212,0.12))',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '1rem'
-          }}
-        >
+        <div style={{ marginBottom: '1.75rem', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%)', border: '1px solid rgba(99, 102, 241, 0.25)', borderRadius: '12px', padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <div style={{ fontSize: '0.82rem', color: '#a5b4fc', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Sparkles size={16} />
-              Welcome back, {user.name}
+            <div style={{ fontSize: '0.82rem', color: '#a5b4fc', fontWeight: 600 }}>
+              Authenticated Student Portal
             </div>
-            <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>
-              Student Portal – {user.collegeName || `College #${user.collegeId}`}
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', margin: '0.2rem 0' }}>
+              Welcome back, {user.name} 👋
             </h2>
-            <p style={{ color: '#94a3b8', fontSize: '0.88rem' }}>
-              Department: {user.department || 'General'} • Academic Year: {user.year || 1}
-            </p>
+            <div style={{ fontSize: '0.88rem', color: '#94a3b8', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <span>Institution: <strong style={{ color: '#06b6d4' }}>{user.collegeName || `College #${user.collegeId}`}</strong></span>
+              {user.department && <span>Department: <strong>{user.department} (Year {user.year || 1})</strong></span>}
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.06)', padding: '0.75rem 1.25rem', borderRadius: '8px' }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#10b981' }}>{myRegistrations.length}</div>
-              <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase' }}>Active Registrations</div>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ textAlign: 'center', background: 'rgba(0,0,0,0.3)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10b981' }}>
+                {myRegistrations.filter(r => r.status === 'CONFIRMED').length}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase' }}>Confirmed</div>
+            </div>
+            <div style={{ textAlign: 'center', background: 'rgba(0,0,0,0.3)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f59e0b' }}>
+                {myRegistrations.filter(r => r.status === 'WAITLISTED').length}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase' }}>Waitlisted</div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="tabs-container">
+      {/* Hero Search & Filters Bar */}
+      <div className="glass-panel" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+          <div style={{ position: 'relative' }}>
+            <Search size={16} style={{ position: 'absolute', left: '12px', top: '12px', color: '#64748b' }} />
+            <input
+              type="text"
+              className="search-input"
+              style={{ width: '100%', paddingLeft: '2.4rem' }}
+              placeholder="Search events, keywords, venues..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <select
+              className="select-input"
+              style={{ width: '100%' }}
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="ALL">All Categories</option>
+              <option value="Technical">Technical</option>
+              <option value="Cultural">Cultural</option>
+              <option value="Sports">Sports</option>
+              <option value="Workshop">Workshop</option>
+              <option value="Seminar">Seminar</option>
+              <option value="Management">Management</option>
+              <option value="Literary">Literary</option>
+              <option value="Arts">Arts</option>
+            </select>
+          </div>
+
+          <div>
+            <select
+              className="select-input"
+              style={{ width: '100%' }}
+              value={collegeFilter}
+              onChange={(e) => setCollegeFilter(e.target.value)}
+            >
+              <option value="ALL">All Organizing Colleges</option>
+              {colleges.map((c) => (
+                <option key={c.collegeId} value={c.collegeId}>
+                  {c.name} ({c.code})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <select
+              className="select-input"
+              style={{ width: '100%' }}
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            >
+              <option value="ALL">All Event Scopes</option>
+              <option value="INTER_COLLEGE">Inter-College (Open to all)</option>
+              <option value="INTRA_COLLEGE">Intra-College (Host college only)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Sub Tabs */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem' }}>
         <button
           className={`tab-btn ${subTab === 'eligible' ? 'active' : ''}`}
           onClick={() => setSubTab('eligible')}
         >
-          All Eligible Events ({events.length})
+          All Available Events ({events.length})
         </button>
+
         {user && (
           <button
             className={`tab-btn ${subTab === 'my_college' ? 'active' : ''}`}
             onClick={() => setSubTab('my_college')}
           >
-            My College Events ({events.filter(e => e.collegeId === user.collegeId).length})
+            My College Events
           </button>
         )}
+
         <button
           className={`tab-btn ${subTab === 'inter_college' ? 'active' : ''}`}
           onClick={() => setSubTab('inter_college')}
         >
-          Inter-College Events ({events.filter(e => e.eventType === 'INTER_COLLEGE').length})
+          Inter-College Events
         </button>
-        {user && (
+
+        {user && user.role === 'STUDENT' && (
           <button
-            className={`tab-btn ${subTab === 'registered' ? 'active' : ''}`}
-            onClick={() => setSubTab('registered')}
+            className={`tab-btn ${subTab === 'registrations' ? 'active' : ''}`}
+            onClick={() => setSubTab('registrations')}
           >
-            My Registered ({myRegistrations.length})
+            My Registrations & Waitlist ({myRegistrations.filter(r => r.status !== 'CANCELLED').length})
           </button>
         )}
-        <button
-          className={`tab-btn ${subTab === 'upcoming' ? 'active' : ''}`}
-          onClick={() => setSubTab('upcoming')}
-        >
-          Upcoming Events
-        </button>
       </div>
 
-      {/* Search & Filters */}
-      <div className="filter-bar">
-        <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
-          <input
-            type="text"
-            className="search-input"
-            style={{ width: '100%', paddingLeft: '2.5rem' }}
-            placeholder="Search by event title, category, or college..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-        </div>
-
-        <select
-          className="select-input"
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-        >
-          <option value="ALL">All Categories</option>
-          <option value="Technical">Technical</option>
-          <option value="Cultural">Cultural</option>
-          <option value="Sports">Sports</option>
-          <option value="Literary">Literary</option>
-          <option value="Arts">Arts</option>
-          <option value="Management">Management</option>
-          <option value="Workshop">Workshop</option>
-          <option value="Social/Community">Social/Community</option>
-        </select>
-
-        <select
-          className="select-input"
-          value={collegeFilter}
-          onChange={(e) => setCollegeFilter(e.target.value)}
-        >
-          <option value="ALL">All Colleges</option>
-          {colleges.map((c) => (
-            <option key={c.collegeId} value={c.collegeId}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          className="select-input"
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-        >
-          <option value="ALL">All Event Types</option>
-          <option value="INTRA_COLLEGE">INTRA_COLLEGE</option>
-          <option value="INTER_COLLEGE">INTER_COLLEGE</option>
-        </select>
-      </div>
-
-      {/* Subtab Registered Table View */}
-      {subTab === 'registered' ? (
+      {/* Main View Area */}
+      {subTab === 'registrations' ? (
+        /* My Registrations & Waitlist Tab */
         <div className="glass-panel" style={{ padding: '1.5rem' }}>
           <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff', marginBottom: '1rem' }}>
-            My Active Registrations
+            My Enrolled Events & Waitlist Queue
           </h3>
+
           {myRegistrations.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
-              You have not registered for any events yet.
+            <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+              You have not registered for any events yet. Explore available events to join!
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8' }}>
+                    <th style={{ padding: '0.75rem' }}>Status / Queue</th>
                     <th style={{ padding: '0.75rem' }}>Event Title</th>
                     <th style={{ padding: '0.75rem' }}>Organizing Institution</th>
                     <th style={{ padding: '0.75rem' }}>Category</th>
                     <th style={{ padding: '0.75rem' }}>Event Date</th>
-                    <th style={{ padding: '0.75rem' }}>Status</th>
                     <th style={{ padding: '0.75rem' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {myRegistrations.map((reg) => (
                     <tr key={reg.registrationId} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <td style={{ padding: '0.75rem' }}>
+                        {reg.status === 'CONFIRMED' ? (
+                          <span className="badge" style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #86efac' }}>
+                            CONFIRMED
+                          </span>
+                        ) : reg.status === 'WAITLISTED' ? (
+                          <span className="badge" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+                            WAITLIST #{reg.queuePosition || 1}
+                          </span>
+                        ) : (
+                          <span className="badge" style={{ background: '#f3f4f6', color: '#6b7280' }}>
+                            {reg.status}
+                          </span>
+                        )}
+                      </td>
                       <td style={{ padding: '0.75rem', fontWeight: 700, color: '#fff' }}>{reg.eventTitle}</td>
                       <td style={{ padding: '0.75rem', color: '#06b6d4' }}>{reg.organizingCollegeName}</td>
                       <td style={{ padding: '0.75rem', color: '#a5b4fc' }}>{reg.eventCategory}</td>
                       <td style={{ padding: '0.75rem', color: '#94a3b8' }}>{reg.eventDate}</td>
                       <td style={{ padding: '0.75rem' }}>
-                        <span className="badge badge-registered">{reg.status}</span>
-                      </td>
-                      <td style={{ padding: '0.75rem' }}>
                         {reg.status !== 'CANCELLED' && (
                           <button
                             className="btn-danger"
+                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
                             onClick={() => handleCancelReg(reg.registrationId)}
                           >
                             Cancel

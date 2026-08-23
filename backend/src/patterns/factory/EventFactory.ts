@@ -1,16 +1,5 @@
 import { Event, EventType, EventStatus } from '../../types';
 
-/**
- * FACTORY METHOD DESIGN PATTERN
- * 
- * Problem: Events have category-specific default values, eligibility descriptions, 
- * contact guidelines, and rules. Instantiating events directly using raw constructors
- * spreads category instantiation logic across the application.
- * 
- * Solution: Define an interface / abstract class for creating an Event object, 
- * but let subclasses decide which specific Event type/category structure to instantiate.
- */
-
 export interface EventCreationData {
   title: string;
   description: string;
@@ -23,6 +12,7 @@ export interface EventCreationData {
   startTime: string;
   endTime: string;
   venue: string;
+  registrationStartTime?: string;
   registrationDeadline: string;
   capacity: number;
   registrationFee?: number;
@@ -32,13 +22,8 @@ export interface EventCreationData {
 }
 
 export abstract class EventFactory {
-  /**
-   * The Factory Method.
-   */
   public abstract createEvent(data: EventCreationData): Omit<Event, 'eventId' | 'currentRegistrations' | 'createdAt'>;
 }
-
-// Concrete Event Factories:
 
 export class TechnicalEventFactory extends EventFactory {
   public createEvent(data: EventCreationData): Omit<Event, 'eventId' | 'currentRegistrations' | 'createdAt'> {
@@ -46,9 +31,9 @@ export class TechnicalEventFactory extends EventFactory {
       ...data,
       category: 'Technical',
       registrationFee: data.registrationFee ?? 0,
-      eligibilityDescription: data.eligibilityDescription || 'Open to all students with basic programming or engineering knowledge.',
-      status: data.status || 'PUBLISHED',
-      contactInformation: data.contactInformation || `Tech Support: tech@eventbridge.edu | Organizer: ${data.organizerName}`
+      eligibilityDescription: data.eligibilityDescription || 'Open to all students with interest in programming, engineering, or computing.',
+      status: data.status || 'DRAFT',
+      contactInformation: data.contactInformation || `Tech Cell: ${data.organizerName}`
     };
   }
 }
@@ -59,9 +44,9 @@ export class CulturalEventFactory extends EventFactory {
       ...data,
       category: 'Cultural',
       registrationFee: data.registrationFee ?? 0,
-      eligibilityDescription: data.eligibilityDescription || 'Open to all enrolled students interested in music, dance, or performing arts.',
-      status: data.status || 'PUBLISHED',
-      contactInformation: data.contactInformation || `Cultural Desk: cultural@eventbridge.edu | Organizer: ${data.organizerName}`
+      eligibilityDescription: data.eligibilityDescription || 'Open to all enrolled students with valid institutional student ID.',
+      status: data.status || 'DRAFT',
+      contactInformation: data.contactInformation || `Cultural Committee: ${data.organizerName}`
     };
   }
 }
@@ -72,22 +57,9 @@ export class SportsEventFactory extends EventFactory {
       ...data,
       category: 'Sports',
       registrationFee: data.registrationFee ?? 0,
-      eligibilityDescription: data.eligibilityDescription || 'Physical fitness required. Proper athletic attire mandatory.',
-      status: data.status || 'PUBLISHED',
-      contactInformation: data.contactInformation || `Sports Officer: sports@eventbridge.edu | Organizer: ${data.organizerName}`
-    };
-  }
-}
-
-export class LiteraryEventFactory extends EventFactory {
-  public createEvent(data: EventCreationData): Omit<Event, 'eventId' | 'currentRegistrations' | 'createdAt'> {
-    return {
-      ...data,
-      category: 'Literary',
-      registrationFee: data.registrationFee ?? 0,
-      eligibilityDescription: data.eligibilityDescription || 'Open to all aspiring writers, debaters, and literary enthusiasts.',
-      status: data.status || 'PUBLISHED',
-      contactInformation: data.contactInformation || `Literary Club: literary@eventbridge.edu | Organizer: ${data.organizerName}`
+      eligibilityDescription: data.eligibilityDescription || 'Physical fitness required. Proper athletic wear mandatory.',
+      status: data.status || 'DRAFT',
+      contactInformation: data.contactInformation || `Sports Department: ${data.organizerName}`
     };
   }
 }
@@ -98,35 +70,22 @@ export class WorkshopEventFactory extends EventFactory {
       ...data,
       category: 'Workshop',
       registrationFee: data.registrationFee ?? 0,
-      eligibilityDescription: data.eligibilityDescription || 'Hands-on workshop. Laptops required unless specified otherwise.',
-      status: data.status || 'PUBLISHED',
-      contactInformation: data.contactInformation || `Workshop Coordinator: workshop@eventbridge.edu | Organizer: ${data.organizerName}`
+      eligibilityDescription: data.eligibilityDescription || 'Interactive hands-on session. Bringing a laptop is recommended.',
+      status: data.status || 'DRAFT',
+      contactInformation: data.contactInformation || `Workshop Coordinator: ${data.organizerName}`
     };
   }
 }
 
-export class ManagementEventFactory extends EventFactory {
+export class SeminarEventFactory extends EventFactory {
   public createEvent(data: EventCreationData): Omit<Event, 'eventId' | 'currentRegistrations' | 'createdAt'> {
     return {
       ...data,
-      category: 'Management',
+      category: 'Seminar',
       registrationFee: data.registrationFee ?? 0,
-      eligibilityDescription: data.eligibilityDescription || 'Open to business, management, and strategy enthusiasts.',
-      status: data.status || 'PUBLISHED',
-      contactInformation: data.contactInformation || `Biz Cell: management@eventbridge.edu | Organizer: ${data.organizerName}`
-    };
-  }
-}
-
-export class SocialEventFactory extends EventFactory {
-  public createEvent(data: EventCreationData): Omit<Event, 'eventId' | 'currentRegistrations' | 'createdAt'> {
-    return {
-      ...data,
-      category: 'Social/Community',
-      registrationFee: data.registrationFee ?? 0,
-      eligibilityDescription: data.eligibilityDescription || 'Open to all community members and student volunteers.',
-      status: data.status || 'PUBLISHED',
-      contactInformation: data.contactInformation || `Community Desk: social@eventbridge.edu | Organizer: ${data.organizerName}`
+      eligibilityDescription: data.eligibilityDescription || 'Open to all undergraduate and postgraduate students.',
+      status: data.status || 'DRAFT',
+      contactInformation: data.contactInformation || `Seminar Desk: ${data.organizerName}`
     };
   }
 }
@@ -136,11 +95,13 @@ export class EventFactoryProvider {
     'Technical': new TechnicalEventFactory(),
     'Cultural': new CulturalEventFactory(),
     'Sports': new SportsEventFactory(),
-    'Literary': new LiteraryEventFactory(),
     'Workshop': new WorkshopEventFactory(),
-    'Management': new ManagementEventFactory(),
-    'Social/Community': new SocialEventFactory(),
-    'Social': new SocialEventFactory()
+    'Seminar': new SeminarEventFactory(),
+    'Management': new TechnicalEventFactory(),
+    'Literary': new CulturalEventFactory(),
+    'Arts': new CulturalEventFactory(),
+    'Social': new CulturalEventFactory(),
+    'Social/Community': new CulturalEventFactory()
   };
 
   public static getFactory(category: string): EventFactory {

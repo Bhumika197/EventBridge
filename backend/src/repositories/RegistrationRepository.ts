@@ -55,7 +55,8 @@ export class RegistrationRepository {
        JOIN USER u ON r.studentId = u.userId
        JOIN COLLEGE sc ON u.collegeId = sc.collegeId
        WHERE r.eventId = ?
-       ORDER BY r.registeredAt ASC`,
+       ORDER BY CASE WHEN r.status = 'CONFIRMED' THEN 1 WHEN r.status = 'WAITLISTED' THEN 2 ELSE 3 END,
+                r.queuePosition ASC, r.registeredAt ASC`,
       [eventId]
     );
   }
@@ -74,22 +75,143 @@ export class RegistrationRepository {
     );
   }
 
-  public async create(eventId: number, studentId: number): Promise<Registration> {
+  public async createConfirmed(eventId: number, studentId: number): Promise<Registration> {
     const db = this.dbManager.getDb();
+    const existing = await this.findByStudentAndEvent(studentId, eventId);
+
+    if (existing) {
+      await db.run(
+        `UPDATE REGISTRATION 
+         SET status = 'CONFIRMED', queuePosition = NULL, registeredAt = CURRENT_TIMESTAMP 
+         WHERE registrationId = ?`,
+        [existing.registrationId]
+      );
+      const reg = await this.findById(existing.registrationId);
+      return reg!;
+    }
+
     const result = await db.run(
-      `INSERT INTO REGISTRATION (eventId, studentId, status) VALUES (?, ?, 'CONFIRMED')`,
+      `INSERT INTO REGISTRATION (eventId, studentId, status, queuePosition) VALUES (?, ?, 'CONFIRMED', NULL)`,
       [eventId, studentId]
     );
     const reg = await this.findById(result.lastID!);
     return reg!;
   }
 
-  public async updateStatus(registrationId: number, status: RegistrationStatus): Promise<void> {
+  public async createWaitlisted(eventId: number, studentId: number): Promise<Registration> {
     const db = this.dbManager.getDb();
-    await db.run('UPDATE REGISTRATION SET status = ? WHERE registrationId = ?', [status, registrationId]);
+    const existing = await this.findByStudentAndEvent(studentId, eventId);
+
+    const maxQueueRow = await db.get<{ maxPos: number }>(
+      `SELECT COALESCE(MAX(queuePosition), 0) as maxPos 
+       FROM REGISTRATION 
+       WHERE eventId = ? AND status = 'WAITLISTED'`,
+      [eventId]
+    );
+    const nextQueuePos = (maxQueueRow?.maxPos || 0) + 1;
+
+    if (existing) {
+      await db.run(
+        `UPDATE REGISTRATION 
+         SET status = 'WAITLISTED', queuePosition = ?, registeredAt = CURRENT_TIMESTAMP 
+         WHERE registrationId = ?`,
+        [nextQueuePos, existing.registrationId]
+      );
+      const reg = await this.findById(existing.registrationId);
+      return reg!;
+    }
+
+    const result = await db.run(
+      `INSERT INTO REGISTRATION (eventId, studentId, status, queuePosition) VALUES (?, ?, 'WAITLISTED', ?)`,
+      [eventId, studentId, nextQueuePos]
+    );
+    const reg = await this.findById(result.lastID!);
+    return reg!;
   }
 
-  public async cancel(registrationId: number): Promise<void> {
-    await this.updateStatus(registrationId, 'CANCELLED');
+  public async getNextWaitlisted(eventId: number): Promise<Registration | undefined> {
+    const db = this.dbManager.getDb();
+    return db.get<Registration>(
+      `SELECT r.*, u.name as studentName, u.email as studentEmail, e.title as eventTitle
+       FROM REGISTRATION r
+       JOIN USER u ON r.studentId = u.userId
+       JOIN EVENT e ON r.eventId = e.eventId
+       WHERE r.eventId = ? AND r.status = 'WAITLISTED'
+       ORDER BY r.queuePosition ASC, r.registeredAt ASC
+       LIMIT 1`,
+      [eventId]
+    );
+  }
+
+  public async promoteWaitlisted(registrationId: number, eventId: number): Promise<Registration | undefined> {
+    const db = this.dbManager.getDb();
+    await db.run(
+      `UPDATE REGISTRATION 
+       SET status = 'CONFIRMED', queuePosition = NULL 
+       WHERE registrationId = ?`,
+      [registrationId]
+    );
+
+    // Reorder remaining waitlist queue positions
+    const remaining = await db.all<{ registrationId: number }[]>(
+      `SELECT registrationId FROM REGISTRATION 
+       WHERE eventId = ? AND status = 'WAITLISTED' 
+       ORDER BY queuePosition ASC, registeredAt ASC`,
+      [eventId]
+    );
+
+    for (let i = 0; i < remaining.length; i++) {
+      await db.run(
+        `UPDATE REGISTRATION SET queuePosition = ? WHERE registrationId = ?`,
+        [i + 1, remaining[i].registrationId]
+      );
+    }
+
+    return this.findById(registrationId);
+  }
+
+  public async countConfirmed(eventId: number): Promise<number> {
+    const db = this.dbManager.getDb();
+    const row = await db.get<{ count: number }>(
+      `SELECT COUNT(*) as count FROM REGISTRATION WHERE eventId = ? AND status = 'CONFIRMED'`,
+      [eventId]
+    );
+    return row?.count || 0;
+  }
+
+  public async countWaitlisted(eventId: number): Promise<number> {
+    const db = this.dbManager.getDb();
+    const row = await db.get<{ count: number }>(
+      `SELECT COUNT(*) as count FROM REGISTRATION WHERE eventId = ? AND status = 'WAITLISTED'`,
+      [eventId]
+    );
+    return row?.count || 0;
+  }
+
+  public async cancel(registrationId: number): Promise<Registration | undefined> {
+    const db = this.dbManager.getDb();
+    const reg = await this.findById(registrationId);
+    if (!reg) return undefined;
+
+    const oldStatus = reg.status;
+    const eventId = reg.eventId;
+    const oldPos = reg.queuePosition;
+
+    await db.run(
+      `UPDATE REGISTRATION SET status = 'CANCELLED', queuePosition = NULL WHERE registrationId = ?`,
+      [registrationId]
+    );
+
+    if (oldStatus === 'WAITLISTED' && oldPos) {
+      // Shift waitlist positions forward
+      await db.run(
+        `UPDATE REGISTRATION 
+         SET queuePosition = queuePosition - 1 
+         WHERE eventId = ? AND status = 'WAITLISTED' AND queuePosition > ?`,
+        [eventId, oldPos]
+      );
+    }
+
+    return reg;
   }
 }

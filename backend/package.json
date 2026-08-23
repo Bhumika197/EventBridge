@@ -7,7 +7,8 @@
     "dev": "ts-node src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "seed": "ts-node src/seed/runSeed.ts"
+    "seed": "ts-node src/seed/runSeed.ts",
+    "test": "ts-node tests/runAllTests.ts"
   },
   "dependencies": {
     "@types/nodemailer": "^8.0.1",

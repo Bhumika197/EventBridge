@@ -4,23 +4,24 @@ export type EventType = 'INTRA_COLLEGE' | 'INTER_COLLEGE';
 
 export type EventStatus = 
   | 'DRAFT' 
+  | 'SUBMITTED' 
+  | 'APPROVED' 
+  | 'REJECTED' 
   | 'PUBLISHED' 
-  | 'REGISTRATION_OPEN' 
-  | 'REGISTRATION_CLOSED' 
-  | 'FULL' 
-  | 'ONGOING' 
   | 'COMPLETED' 
   | 'CANCELLED';
 
-export type RegistrationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'REJECTED';
+export type RegistrationStatus = 'CONFIRMED' | 'WAITLISTED' | 'CANCELLED' | 'REJECTED';
 
 export type NotificationType = 
   | 'Registration Confirmation'
+  | 'Waitlist Confirmation'
+  | 'Waitlist Promotion'
   | 'Event Reminder'
   | 'Event Updated'
   | 'Event Cancelled'
-  | 'Registration Approved'
-  | 'Registration Rejected'
+  | 'Event Approved'
+  | 'Event Rejected'
   | 'Organizer Announcement'
   | 'Password Reset';
 
@@ -65,15 +66,21 @@ export interface Event {
   startTime: string;
   endTime: string;
   venue: string;
+  registrationStartTime?: string;
   registrationDeadline: string;
   capacity: number;
   currentRegistrations: number;
+  waitlistCount?: number;
   registrationFee: number;
   eligibilityDescription: string;
   status: EventStatus;
+  rejectionReason?: string;
+  reviewedBy?: number;
+  reviewedAt?: string;
   contactInformation: string;
   createdAt?: string;
   organizingCollegeName?: string;
+  isRegistrationOpen?: boolean;
 }
 
 export interface Registration {
@@ -82,6 +89,7 @@ export interface Registration {
   studentId: number;
   registeredAt: string;
   status: RegistrationStatus;
+  queuePosition?: number;
   eventTitle?: string;
   eventCategory?: string;
   eventType?: EventType;
@@ -125,4 +133,23 @@ export interface RegistrationValidationResult {
   allowed: boolean;
   reason?: string;
   handlerName?: string;
+  canJoinWaitlist?: boolean;
+}
+
+export interface EventFilterQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  category?: string;
+  eventType?: EventType | 'ALL';
+  collegeId?: number | 'ALL';
+  status?: EventStatus | 'ALL';
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }

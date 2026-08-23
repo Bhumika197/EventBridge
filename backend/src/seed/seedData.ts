@@ -3,9 +3,11 @@ import { DatabaseManager } from '../db/DatabaseManager';
 import { CollegeRepository } from '../repositories/CollegeRepository';
 import { UserRepository } from '../repositories/UserRepository';
 import { EventService } from '../services/EventService';
+import { RegistrationService } from '../services/RegistrationService';
+import { logger } from '../utils/logger';
 
 export async function seedDatabase() {
-  console.log('🌱 Starting EventBridge Database Seeding...');
+  logger.info('Starting EventBridge Database Seeding...');
   
   const dbManager = DatabaseManager.getInstance();
   await dbManager.initialize();
@@ -24,8 +26,9 @@ export async function seedDatabase() {
   const collegeRepo = new CollegeRepository();
   const userRepo = new UserRepository();
   const eventService = new EventService();
+  const regService = new RegistrationService();
 
-  // 1. Seed Colleges with @rbunagpur.in and @rcoem.in
+  // 1. Seed Colleges
   const cRBU = await collegeRepo.create({ name: 'Ramdeobaba University', code: 'RBU', location: 'Katol Road, Nagpur', emailDomain: 'rbunagpur.in', status: 'ACTIVE' });
   const cRCOEM = await collegeRepo.create({ name: 'Shri Ramdeobaba College of Engineering and Management (RCOEM)', code: 'RCOEM', location: 'Ramdeo Tekdi, Gittikhadan, Nagpur', emailDomain: 'rcoem.in', status: 'ACTIVE' });
   const cNVU = await collegeRepo.create({ name: 'North Valley University', code: 'NVU', location: 'North Valley Campus', emailDomain: 'nvu.edu', status: 'ACTIVE' });
@@ -33,13 +36,11 @@ export async function seedDatabase() {
   const cCAC = await collegeRepo.create({ name: 'City Arts College', code: 'CAC', location: 'Downtown Metro', emailDomain: 'cac.edu', status: 'ACTIVE' });
   const cNBC = await collegeRepo.create({ name: 'National Business College', code: 'NBC', location: 'Financial Center', emailDomain: 'nbc.edu', status: 'ACTIVE' });
 
-  console.log('✅ 6 Institutional Colleges created: Ramdeobaba University (@rbunagpur.in), RCOEM (@rcoem.in), NVU, GIT, CAC, NBC');
-
   const defaultPassword = await bcrypt.hash('password123', 10);
   const adminPassword = await bcrypt.hash('admin123', 10);
 
   // 2. Seed Platform Admin
-  await userRepo.create({
+  const adminUser = await userRepo.create({
     name: 'Platform Administrator',
     username: 'admin',
     email: 'admin@eventbridge.edu',
@@ -49,7 +50,7 @@ export async function seedDatabase() {
     status: 'ACTIVE'
   });
 
-  // 3. Seed Organizers (4 Institutional Organizers)
+  // 3. Seed Organizers
   const orgRBU = await userRepo.create({
     name: 'Dr. Rajesh Sharma (RBU Tech Cell)',
     username: 'org_rbu',
@@ -94,7 +95,7 @@ export async function seedDatabase() {
     status: 'ACTIVE'
   });
 
-  // 4. Seed Primary Student Accounts (2 Users)
+  // 4. Seed Primary Student Accounts
   const studentBhumika = await userRepo.create({
     name: 'Bhumika Reddy',
     username: 'bhumika_rbu',
@@ -121,8 +122,7 @@ export async function seedDatabase() {
     status: 'ACTIVE'
   });
 
-  // 5. Seed 93 Additional Student Accounts (student1 - student93)
-  // Total Users = 1 (Admin) + 4 (Organizers) + 2 (Primary Students) + 93 (Students) = 100 TOTAL USERS
+  // 5. Seed Additional Student Accounts
   const collegesList = [
     { id: cRBU.collegeId, domain: 'rbunagpur.in', name: 'RBU' },
     { id: cRCOEM.collegeId, domain: 'rcoem.in', name: 'RCOEM' },
@@ -153,10 +153,9 @@ export async function seedDatabase() {
     });
   }
 
-  console.log('✅ Exactly 100 Total User Accounts Seeded: 1 Admin, 4 Organizers, 95 Students (bhumika_rbu, aarav_rcoem, student1 - student93)');
-
-  // 6. Seed Sample Events via Factory Method
-  await eventService.createEvent({
+  // 6. Seed Sample Events in different lifecycle states
+  // Event 1: Published Inter-College Hackathon
+  const e1 = await eventService.createEvent({
     title: 'HackRBU 2026: National AI Hackathon',
     description: '48-hour inter-college AI & Web3 hackathon hosted by Ramdeobaba University. Open to all colleges across India.',
     category: 'Technical',
@@ -171,10 +170,12 @@ export async function seedDatabase() {
     registrationDeadline: '2026-09-10',
     capacity: 250,
     registrationFee: 0.0,
+    status: 'PUBLISHED',
     contactInformation: 'hackathon@rbunagpur.in'
   });
 
-  await eventService.createEvent({
+  // Event 2: Published Intra-College Cultural Fest
+  const e2 = await eventService.createEvent({
     title: 'Pratibha 2026: RCOEM Annual Cultural Fest',
     description: 'Grand intra-college cultural festival featuring battle of bands, dance drama, and fashion show for RCOEM students.',
     category: 'Cultural',
@@ -189,26 +190,81 @@ export async function seedDatabase() {
     registrationDeadline: '2026-10-01',
     capacity: 500,
     registrationFee: 150.0,
+    status: 'PUBLISHED',
     contactInformation: 'pratibha@rcoem.in'
   });
 
-  await eventService.createEvent({
-    title: 'Inter-University Cricket Championship 2026',
-    description: 'Inter-college T20 tournament between engineering and university teams of Central India.',
+  // Event 3: Published Sports Tournament with small capacity for waitlist demonstration (Capacity: 2)
+  const e3 = await eventService.createEvent({
+    title: 'Table Tennis Intra-College Open Championship',
+    description: 'Competitive singles table tennis tournament. Limited capacity with active waitlist queue.',
     category: 'Sports',
-    eventType: 'INTER_COLLEGE',
-    collegeId: cRCOEM.collegeId,
-    organizerId: orgRCOEM.userId,
-    organizerName: orgRCOEM.name,
-    date: '2026-11-12',
-    startTime: '08:00 AM',
+    eventType: 'INTRA_COLLEGE',
+    collegeId: cRBU.collegeId,
+    organizerId: orgRBU.userId,
+    organizerName: orgRBU.name,
+    date: '2026-09-20',
+    startTime: '02:00 PM',
     endTime: '06:00 PM',
-    venue: 'RCOEM Sports Complex, Nagpur',
-    registrationDeadline: '2026-11-05',
-    capacity: 16,
-    registrationFee: 500.0,
-    contactInformation: 'sports@rcoem.in'
+    venue: 'RBU Sports Hall',
+    registrationDeadline: '2026-09-18',
+    capacity: 2,
+    registrationFee: 0.0,
+    status: 'PUBLISHED',
+    contactInformation: 'sports@rbunagpur.in'
   });
 
-  console.log('✅ Events created via Factory Method Pattern');
+  // Event 4: Submitted Event Pending Admin Review
+  await eventService.createEvent({
+    title: 'Quantum Computing & Cryptography Seminar',
+    description: 'Inter-college symposium covering quantum key distribution, post-quantum cryptography, and hybrid quantum algorithms.',
+    category: 'Seminar',
+    eventType: 'INTER_COLLEGE',
+    collegeId: cGIT.collegeId,
+    organizerId: orgGIT.userId,
+    organizerName: orgGIT.name,
+    date: '2026-10-18',
+    startTime: '11:00 AM',
+    endTime: '03:00 PM',
+    venue: 'GIT Tech Center, Room 402',
+    registrationDeadline: '2026-10-14',
+    capacity: 80,
+    registrationFee: 0.0,
+    status: 'SUBMITTED',
+    contactInformation: 'quantum@git.edu'
+  });
+
+  // Event 5: Draft Event
+  await eventService.createEvent({
+    title: 'Robotics Autonomous Navigation Workshop',
+    description: 'Hands-on ROS2 and LiDAR SLAM navigation workshop for undergraduate engineering students.',
+    category: 'Workshop',
+    eventType: 'INTER_COLLEGE',
+    collegeId: cGIT.collegeId,
+    organizerId: orgGIT.userId,
+    organizerName: orgGIT.name,
+    date: '2026-11-01',
+    startTime: '10:00 AM',
+    endTime: '04:00 PM',
+    venue: 'GIT Robotics Lab',
+    registrationDeadline: '2026-10-28',
+    capacity: 35,
+    registrationFee: 200.0,
+    status: 'DRAFT',
+    contactInformation: 'robotics@git.edu'
+  });
+
+  // Register students for Event 1
+  await regService.registerStudentForEvent(studentBhumika.userId, e1.eventId);
+  await regService.registerStudentForEvent(studentAarav.userId, e1.eventId);
+
+  // Fill Event 3 to capacity (capacity = 2) so the next registrant triggers the waitlist!
+  await regService.registerStudentForEvent(studentBhumika.userId, e3.eventId); // Confirmed #1
+
+  const student1Row = await userRepo.findByUsername('student1');
+  if (student1Row) {
+    await regService.registerStudentForEvent(student1Row.userId, e3.eventId); // Confirmed #2 (Capacity reached)
+  }
+
+  logger.info('Database seeding completed successfully.');
 }

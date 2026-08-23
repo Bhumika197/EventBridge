@@ -42,7 +42,7 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
     return text;
   }
 
-  if (!res.ok && !json.restricted && !json.handlerName) {
+  if (!res.ok && !json.restricted && !json.handlerName && json.status !== 'WAITLISTED') {
     throw new Error(json.message || json.reason || `API Request Failed (${res.status})`);
   }
   return json;
@@ -59,9 +59,25 @@ export const api = {
 
   // Events
   getEligibleEvents: () => fetchApi('/events/eligible'),
+  getPaginatedEvents: (params?: any) => {
+    const cleanParams: Record<string, string> = {};
+    if (params) {
+      Object.entries(params).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '') {
+          cleanParams[key] = String(val);
+        }
+      });
+    }
+    const query = new URLSearchParams(cleanParams).toString();
+    return fetchApi(`/events${query ? `?${query}` : ''}`);
+  },
   getEventById: (id: number) => fetchApi(`/events/${id}`),
   getOrganizerEvents: () => fetchApi('/events/organizer/my-events'),
+  getPendingReviews: () => fetchApi('/events/pending-reviews'),
   createEvent: (data: any) => fetchApi('/events', { method: 'POST', body: JSON.stringify(data) }),
+  submitForReview: (id: number) => fetchApi(`/events/${id}/submit`, { method: 'POST' }),
+  reviewEvent: (id: number, decision: 'APPROVE' | 'REJECT', rejectionReason?: string) => 
+    fetchApi(`/events/${id}/review`, { method: 'POST', body: JSON.stringify({ decision, rejectionReason }) }),
   updateEvent: (id: number, data: any) => fetchApi(`/events/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   cancelEvent: (id: number, reason: string) => fetchApi(`/events/${id}/cancel`, { method: 'POST', body: JSON.stringify({ reason }) }),
   sendAnnouncement: (id: number, announcement: string) => fetchApi(`/events/${id}/announcement`, { method: 'POST', body: JSON.stringify({ announcement }) }),

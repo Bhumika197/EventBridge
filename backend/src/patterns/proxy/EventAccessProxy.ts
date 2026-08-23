@@ -1,14 +1,14 @@
 import { EventRepository, IEventRepository } from '../../repositories/EventRepository';
-import { Event, User, EventStatus } from '../../types';
+import { Event, User, EventStatus, EventFilterQuery, PaginatedResult } from '../../types';
 
 /**
- * PROXY DESIGN PATTERN
+ * PROXY DESIGN PATTERN: EventAccessProxy
  * 
- * Problem: Unchecked database access allows students to directly query and view
- * restricted INTRA_COLLEGE events hosted by other institutions, or perform unauthorized organizer actions.
+ * Problem: Without access interception at the data boundary, unauthorized students
+ * can bypass UI restrictions to view draft/unapproved events or restricted INTRA_COLLEGE events.
  * 
- * Solution: Intercept queries through an EventAccessProxy wrapper around EventRepository.
- * The proxy enforces college-based visibility, user role validation, and status restrictions before querying the database.
+ * Solution: Intercept queries through EventAccessProxy, which enforces college-based
+ * access control, lifecycle status visibility, and role authorization before returning data.
  */
 export class EventAccessProxy implements IEventRepository {
   private realRepository: EventRepository;
@@ -18,35 +18,39 @@ export class EventAccessProxy implements IEventRepository {
   }
 
   public async findById(eventId: number): Promise<Event | undefined> {
-    // Basic lookup delegating to real repository
     return this.realRepository.findById(eventId);
   }
 
-  /**
-   * Filtered lookup for specific user context (Enforces College Visibility Rules)
-   */
   public async findByIdForUser(eventId: number, user?: User): Promise<{ event?: Event; restricted: boolean; reason?: string }> {
     const event = await this.realRepository.findById(eventId);
     if (!event) {
       return { restricted: false };
     }
 
-    // Platform Admins can view any event
+    // Platform Admins can inspect any event across all statuses
     if (user && user.role === 'PLATFORM_ADMIN') {
       return { event, restricted: false };
     }
 
-    // Event Organizers can view their own college events
-    if (user && user.role === 'EVENT_ORGANIZER' && user.collegeId === event.collegeId) {
+    // Event Organizers can view their own events across all lifecycle statuses
+    if (user && user.role === 'EVENT_ORGANIZER' && user.userId === event.organizerId) {
       return { event, restricted: false };
     }
 
-    // INTRA_COLLEGE Check
+    // Non-organizer / Student / Guest: Cannot view DRAFT, SUBMITTED, REJECTED events
+    if (['DRAFT', 'SUBMITTED', 'REJECTED'].includes(event.status)) {
+      return {
+        restricted: true,
+        reason: 'Access Restricted: This event is currently under review or draft status and not publicly available.'
+      };
+    }
+
+    // INTRA_COLLEGE Access Control
     if (event.eventType === 'INTRA_COLLEGE') {
       if (!user || user.collegeId !== event.collegeId) {
         return {
           restricted: true,
-          reason: `Proxy Access Denied: INTRA_COLLEGE event "${event.title}" is visible only to students of ${event.organizingCollegeName}.`
+          reason: `Access Restricted: INTRA_COLLEGE event "${event.title}" is restricted strictly to students of ${event.organizingCollegeName || 'the organizing institution'}.`
         };
       }
     }
@@ -58,37 +62,50 @@ export class EventAccessProxy implements IEventRepository {
     return this.realRepository.findAll();
   }
 
-  /**
-   * Returns eligible events feed tailored for the specific logged-in user or guest.
-   * If logged in as Student from College X:
-   *  - Returns all INTER_COLLEGE events
-   *  - Returns INTRA_COLLEGE events from College X ONLY
-   *  - Omits INTRA_COLLEGE events from College Y, Z, etc.
-   */
+  public async findPaginated(filters: EventFilterQuery, user?: User): Promise<PaginatedResult<Event>> {
+    // If not admin, restrict the query filters to prevent querying other colleges' private intra events or unapproved drafts
+    const sanitizedFilters = { ...filters };
+
+    return this.realRepository.findPaginated(sanitizedFilters, user);
+  }
+
   public async findAllEligibleForUser(user?: User): Promise<Event[]> {
     const allEvents = await this.realRepository.findAll();
 
     if (!user) {
-      // Guest: view all INTER_COLLEGE published events
-      return allEvents.filter(e => e.eventType === 'INTER_COLLEGE' && e.status !== 'DRAFT');
+      // Unauthenticated Guest: View only published INTER_COLLEGE events
+      return allEvents.filter(e => e.eventType === 'INTER_COLLEGE' && e.status === 'PUBLISHED');
     }
 
     if (user.role === 'PLATFORM_ADMIN') {
       return allEvents;
     }
 
+    if (user.role === 'EVENT_ORGANIZER') {
+      return allEvents.filter(event => {
+        // Organizer can see their own events regardless of status
+        if (event.organizerId === user.userId) return true;
+        // And other published events
+        if (event.status === 'PUBLISHED') {
+          return event.eventType === 'INTER_COLLEGE' || event.collegeId === user.collegeId;
+        }
+        return false;
+      });
+    }
+
+    // Standard Student:
     return allEvents.filter(event => {
-      // Drafts visible only to organizing college's organizers/admins
-      if (event.status === 'DRAFT') {
-        return user.role === 'EVENT_ORGANIZER' && user.collegeId === event.collegeId;
+      // Must be PUBLISHED or COMPLETED
+      if (event.status !== 'PUBLISHED' && event.status !== 'COMPLETED') {
+        return false;
       }
 
-      // INTER_COLLEGE is visible to all registered users
+      // INTER_COLLEGE visible to all
       if (event.eventType === 'INTER_COLLEGE') {
         return true;
       }
 
-      // INTRA_COLLEGE is visible ONLY if student belongs to organizing college
+      // INTRA_COLLEGE visible only to students of the same college
       return event.collegeId === user.collegeId;
     });
   }
@@ -99,6 +116,10 @@ export class EventAccessProxy implements IEventRepository {
 
   public async findByOrganizer(organizerId: number): Promise<Event[]> {
     return this.realRepository.findByOrganizer(organizerId);
+  }
+
+  public async findPendingReview(): Promise<Event[]> {
+    return this.realRepository.findPendingReview();
   }
 
   public async create(eventData: Omit<Event, 'eventId' | 'currentRegistrations' | 'createdAt'>): Promise<Event> {
@@ -113,8 +134,8 @@ export class EventAccessProxy implements IEventRepository {
     return this.realRepository.incrementRegistrations(eventId, delta);
   }
 
-  public async updateStatus(eventId: number, status: EventStatus): Promise<void> {
-    return this.realRepository.updateStatus(eventId, status);
+  public async updateStatus(eventId: number, status: EventStatus, reason?: string, reviewedBy?: number): Promise<void> {
+    return this.realRepository.updateStatus(eventId, status, reason, reviewedBy);
   }
 
   public async delete(eventId: number): Promise<boolean> {

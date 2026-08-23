@@ -1,424 +1,300 @@
-# EventBridge – College-Integrated Inter-College Event Discovery & Registration Platform
+# EventBridge — University Event Discovery & Registration Platform
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-event--bridge--beta.vercel.app-blue?style=for-the-badge&logo=vercel)](https://event-bridge-beta.vercel.app/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.4-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![Express](https://img.shields.io/badge/Node%20Express-4.19-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+[![SQLite](https://img.shields.io/badge/SQLite-WASM-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org/)
+[![Tests](https://img.shields.io/badge/Tests-5%2F5%20Passing%20(100%25)-10b981?style=for-the-badge&logo=jest&logoColor=white)](https://github.com/Bhumika197/EventBridge)
 
-EventBridge is a centralized, full-stack web platform for college students, organizers, and platform administrators to discover, manage, and register for campus events across multiple institutions.
-
-> **Academic Project Note**: Designed for Software Engineering & Design Pattern evaluation, enforcing clean Object-Oriented Architecture and explicit design patterns (Singleton, Chain of Responsibility, Factory Method, Proxy, Abstract Factory, Bridge, Observer, Database Connectivity).
-
----
-
-## 🌐 Live Deployment
-
-🚀 **Live Application:** [https://event-bridge-beta.vercel.app/](https://event-bridge-beta.vercel.app/)
-
-The project is deployed on **Vercel** with full client-side React routing and serverless backend API endpoints powered by an in-memory SQL database (`sql.js`).
+EventBridge is a full-stack web application designed to solve the fragmented event discovery and registration process across collegiate campuses. It provides institutional isolation, granular access control, registration validation, and automated FIFO waitlist management.
 
 ---
 
-## 🔑 Sample Demo Accounts
+## 🌐 Live Deployment & Demo
 
-All sample passwords are: `password123` (Admin: `admin123`).
+🚀 **Production Web App:** [https://event-bridge-beta.vercel.app/](https://event-bridge-beta.vercel.app/)
 
-| Role | Username | College | Description |
+The application is deployed on **Vercel** with full client-side React routing and serverless backend API endpoints powered by an in-memory/disk-synchronized SQLite WASM database (`sql.js`).
+
+---
+
+## 🔑 Demo Accounts
+
+All demo accounts share the password: `password123` (Admin: `admin123`).
+
+| Role | Username | Affiliation | Purpose |
 | :--- | :--- | :--- | :--- |
-| **Student** | `student_nvu` | North Valley University | Student eligible for NVU Intra & Inter events |
-| **Student** | `student_git` | Greenfield Institute of Tech | Student eligible for GIT Intra & Inter events |
-| **Student** | `student_cac` | City Arts College | Fine Arts Student eligible for CAC & Inter events |
-| **Organizer** | `org_nvu` | North Valley University | Tech Event Organizer |
-| **Organizer** | `org_git` | Greenfield Institute of Tech | Robotics & Hackathon Organizer |
-| **Admin** | `admin` | Platform Wide | System Administrator (Manage colleges & users) |
+| **Student** | `bhumika_rbu` | Ramdeobaba University (RBU) | Discover and register for RBU intra events and inter-college events |
+| **Student** | `aarav_rcoem` | RCOEM Nagpur | Discover and register for RCOEM intra events and inter-college events |
+| **Student** | `student1` ... `student93` | Multiple Institutions | Test waitlisting, concurrent registration, and automated queue promotions |
+| **Organizer** | `org_rbu` | RBU Tech Cell | Create draft events, submit for review, broadcast announcements, view rosters |
+| **Organizer** | `org_rcoem` | RCOEM Cultural Club | Manage cultural events and inspect waitlists |
+| **Admin** | `admin` | Platform Wide | System governance, event moderation review desk (Approve / Reject), college registration |
 
 ---
 
-## ✨ Key Features
+## 🎯 The Problem Solved
 
-- **College-Integrated Event Visibility**:
-  - **INTRA_COLLEGE**: Restricted strictly to students of the organizing institution. Excluded from default eligible feeds of students from other colleges.
-  - **INTER_COLLEGE**: Open to students across all registered institutions, subject to eligibility criteria.
-- **7-Stage Validation Chain (Chain of Responsibility)**:
-  - Sequential validation when clicking REGISTER: `AuthCheckHandler` → `EventStatusHandler` → `VisibilityCheckHandler` → `CollegeEligibilityHandler` → `DeadlineCheckHandler` → `CapacityCheckHandler` → `DuplicateRegistrationHandler`.
-- **Dynamic Category Factories (Factory Method & Abstract Factory)**:
-  - Instantializes events and category-specific policy components (Technical, Cultural, Sports, Literary, Arts, Management, Workshops, Social/Community).
-- **Access Control Proxy (Proxy Pattern)**:
-  - Wraps repository queries to filter restricted intra-college events and enforce role permissions.
-- **Decoupled Notifications (Bridge & Observer Patterns)**:
-  - Observer notifies registered students on event changes; Bridge decouples notification types (`RegistrationConfirmation`, `EventUpdated`, `EventCancelled`, `OrganizerAnnouncement`) from delivery channels (`InAppChannel`, `EmailChannel`, `SMSChannel`).
-- **Interactive Design Pattern & UML Explorer**:
-  - Built-in UI tab displaying pattern problem-solution breakdowns, source file links, code snippets, and all 10 UML diagram specifications.
+In collegiate ecosystems, campus event discovery and attendance management suffer from three core issues:
+1. **Scattered Information**: Announcements are scattered across WhatsApp groups, email blasts, and physical posters, causing low visibility and missed registration deadlines.
+2. **Access Control Leakage**: Organizers struggle to enforce institutional boundaries (e.g. restricting an internal workshop strictly to host-college students while opening hackathons to other universities).
+3. **Overbooking & Manual Waitlisting**: When high-demand events hit capacity, manual waitlist tracking leads to confusion, double registrations, and empty seats when confirmed students drop out last minute.
+
+**EventBridge** addresses these challenges through a unified platform featuring college-based visibility isolation, a sequential 6-stage validation pipeline, and an atomic FIFO waitlist with automatic promotion upon cancellation.
 
 ---
 
-## 📊 Complete System UML & Architectural Diagram
+## 🏗️ System Architecture
+
+```text
+                    ┌─────────────────────────┐
+                    │     Frontend (React)     │
+                    │  Vite + TypeScript + UI │
+                    └────────────┬────────────┘
+                                 │ HTTP / REST
+                    ┌────────────▼────────────┐
+                    │   Express Controllers   │
+                    │  (Req/Res, Status Codes)│
+                    └────────────┬────────────┘
+                                 │
+              ┌──────────────────▼──────────────────┐
+              │           Service Layer             │
+              │  EventService    RegistrationService│
+              │  WaitlistService NotificationService│
+              └─────────────┬───────────┬───────────┘
+                            │           │
+              ┌─────────────▼──┐    ┌───▼───────────┐
+              │   Repositories │    │Design Patterns│
+              │ (DAOs, Queries)│    │• Factory      │
+              └─────────────┬──┘    │• Chain of Resp│
+                            │       │• Proxy        │
+                            │       │• Observer     │
+                            │       └───────────────┘
+              ┌─────────────▼───────────┐
+              │     Database Layer      │
+              │ SQLite (Atomic / WASM)  │
+              └─────────────────────────┘
+```
+
+<div align="center">
+  <img src="docs/system_architecture.jpg" alt="EventBridge Complete System Architecture Diagram" width="100%" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin: 20px 0;" />
+</div>
+
+---
+
+## ✨ Core Features & Workflows
+
+### 1. Waitlist & Automatic FIFO Promotion (Hero Feature)
+When an event reaches capacity limit (`currentRegistrations >= capacity`):
+- Additional registrants are automatically placed on a FIFO waitlist (`status = 'WAITLISTED'`) and assigned a real-time queue position (`queuePosition = 1, 2, 3...`).
+- When a confirmed attendee cancels their registration, `WaitlistService` immediately and atomically promotes the student at the front of the queue (`queuePosition = 1`) to `CONFIRMED`.
+- The `Observer Pattern` dispatches high-priority in-app and simulated email notifications to the promoted student.
+- Remaining waitlisted candidates have their queue positions shifted forward automatically.
 
 ```mermaid
-flowchart TB
-    %% 1. ACTORS SECTION
-    subgraph S1["1. ACTORS"]
-        Guest["👤 Guest (Unauthenticated User)<br/>• Browse public events<br/>• View event details<br/>• Search & filter events"]
-        Student["🎓 Student (Registered User)<br/>• Manage profile & college link<br/>• Discover eligible events<br/>• Register for events<br/>• View registrations<br/>• Receive notifications"]
-        Organizer["👔 Organizer (Event Lead)<br/>• Create & publish events<br/>• Manage event updates<br/>• Broadcast announcements<br/>• View participant rosters"]
-        Admin["🛡️ Admin (Platform Admin)<br/>• Manage colleges & domains<br/>• User management & roles<br/>• System oversight & audit<br/>• View platform analytics"]
-    end
+sequenceDiagram
+    autonumber
+    actor Student A as Confirmed Student
+    actor Student B as Waitlisted Student (#1)
+    participant RS as RegistrationService
+    participant WS as WaitlistService
+    participant DB as SQLite DB
+    participant Obs as EventSubject (Observer)
 
-    %% 2. FRONTEND CLIENT
-    subgraph S2["2. FRONTEND (React 18 + TypeScript + Vite + Tailwind CSS)"]
-        subgraph F_Routes["2.1 Pages & Routes"]
-            P_Home["/ (HomePage)"]
-            P_Events["/events (EventsPage)"]
-            P_Detail["/events/:id (EventDetailPage)"]
-            P_Login["/login (LoginPage)"]
-            P_Reg["/register (RegisterPage)"]
-            P_MyReg["/my-registrations (MyRegistrationsPage)"]
-            P_Create["/organizer/create (CreateEventPage)"]
-            P_Admin["/admin (AdminDashboardPage)"]
-            P_Patterns["/patterns (PatternsExplorerPage)"]
-            P_Contact["/contact (ContactPage)"]
-        end
-
-        subgraph F_Layout["2.2 Shared Layout & Contexts"]
-            L_Nav["Navbar & Header"]
-            L_Foot["Footer"]
-            L_Auth["AuthContext (JWT Session)"]
-            L_Notif["NotificationDropdown"]
-            L_Toast["ToastNotificationProvider"]
-        end
-
-        subgraph F_Comp["2.3 UI Components"]
-            C_Card["EventCard"]
-            C_Search["SearchBar & FilterSidebar"]
-            C_Modal["RegistrationModal"]
-            C_Chain["ChainDebuggerVisualizer"]
-            C_PatView["DesignPatternViewer"]
-            C_Stats["AnalyticsStatsGrid"]
-        end
-
-        subgraph F_State["2.4 State Management & Client Services"]
-            S_Auth["authService (JWT Storage)"]
-            S_Event["eventService (API Client)"]
-            S_Reg["registrationService"]
-            S_Notif["notificationService"]
-        end
-    end
-
-    %% 3. BACKEND & API GATEWAY
-    subgraph S3["3. API GATEWAY & BACKEND (Express.js / Vercel Serverless)"]
-        subgraph B_Routes["3.1 REST API Routes"]
-            R_Auth["POST /api/auth/login<br/>POST /api/auth/register<br/>GET /api/auth/me"]
-            R_Event["GET /api/events/eligible<br/>GET /api/events/:id<br/>POST /api/events<br/>PUT /api/events/:id<br/>POST /api/events/:id/announcement"]
-            R_Reg["POST /api/registrations/event/:id<br/>GET /api/registrations/my-registrations<br/>DELETE /api/registrations/:id"]
-            R_Admin["GET /api/admin/stats<br/>POST /api/admin/colleges<br/>GET /api/admin/users"]
-            R_Pat["GET /api/patterns<br/>GET /api/patterns/:id"]
-            R_Cont["POST /api/contact"]
-        end
-
-        subgraph B_Ctrl["3.2 Controllers"]
-            Ctrl_Auth["AuthController"]
-            Ctrl_Event["EventController"]
-            Ctrl_Reg["RegistrationController"]
-            Ctrl_Admin["AdminController"]
-            Ctrl_Pat["PatternInfoController"]
-            Ctrl_Cont["ContactController"]
-        end
-
-        subgraph B_Serv["3.3 Services & Business Logic"]
-            S_AuthServ["AuthService (Password verification, JWT)"]
-            S_EventServ["EventService (Event lifecycle, Filtering)"]
-            S_RegServ["RegistrationService (Execution orchestrator)"]
-            S_NotifServ["NotificationService (Multi-channel dispatch)"]
-        end
-
-        subgraph B_Mid["3.4 Middleware & Guards"]
-            M_Auth["authMiddleware (JWT Verification)"]
-            M_Role["roleMiddleware (RBAC Access Control)"]
-            M_Valid["validationMiddleware (Input Sanitize)"]
-            M_Error["errorMiddleware (Global Handler)"]
-        end
-
-        subgraph B_Pat["3.5 Core Design Pattern Engines"]
-            DP_Singleton["Singleton: DatabaseManager"]
-            DP_Chain["Chain of Responsibility: RegistrationValidationChain<br/>(7-Stage Sequential Rule Handlers)"]
-            DP_Factory["Factory Method: EventFactory<br/>(Technical, Cultural, Sports, etc.)"]
-            DP_AbsFact["Abstract Factory: EventComponentFactory<br/>(Event + Policies Families)"]
-            DP_Proxy["Proxy: EventAccessProxy<br/>(Institution Access Control)"]
-            DP_Bridge["Bridge: NotificationBridge<br/>(Types decoupled from Channels)"]
-            DP_Observer["Observer: EventSubject<br/>(Broadcast alerts on change)"]
-        end
-    end
-
-    %% 4. DATABASE & REPOSITORIES
-    subgraph S4["4. DATABASE & DATA ACCESS LAYER (SQLite / sql.js)"]
-        subgraph D_DAO["4.1 Repositories (DAO Pattern)"]
-            DAO_College["CollegeRepository"]
-            DAO_User["UserRepository"]
-            DAO_Event["EventRepository"]
-            DAO_Reg["RegistrationRepository"]
-            DAO_Notif["NotificationRepository"]
-            DAO_Contact["ContactRequestRepository"]
-        end
-
-        subgraph D_Schema["4.2 Database Tables & Schemas"]
-            T_College["COLLEGE<br/>• collegeId (PK)<br/>• name, code<br/>• emailDomain, location"]
-            T_User["USER<br/>• userId (PK)<br/>• collegeId (FK)<br/>• username, email, passwordHash<br/>• role (STUDENT/ORGANIZER/ADMIN)"]
-            T_Event["EVENT<br/>• eventId (PK)<br/>• collegeId (FK), organizerId (FK)<br/>• title, category, eventType<br/>• date, venue, capacity, deadline"]
-            T_Reg["REGISTRATION<br/>• registrationId (PK)<br/>• eventId (FK), studentId (FK)<br/>• status, registeredAt"]
-            T_Notif["NOTIFICATION<br/>• notificationId (PK)<br/>• userId (FK), eventId (FK)<br/>• type, channel, message, isRead"]
-            T_Contact["CONTACT_REQUEST<br/>• requestId (PK)<br/>• name, email, message"]
-        end
-    end
-
-    %% 5. EXTERNAL SERVICES
-    subgraph S5["5. EXTERNAL SERVICES & INTEGRATIONS"]
-        EXT_JWT["🔐 JWT & Bcrypt<br/>Token Auth & Hash"]
-        EXT_DB["💾 sql.js / SQLite<br/>In-Memory SQL Engine"]
-        EXT_Email["📧 Nodemailer<br/>Email Notifications"]
-        EXT_SMS["📱 SMS Gateway<br/>SMS Channel (Simulated)"]
-        EXT_Vercel["⚡ Vercel Serverless<br/>Cloud Functions & Edge"]
-    end
-
-    %% 6. INFRASTRUCTURE
-    subgraph S6["6. SYSTEM INFRASTRUCTURE (Vercel + Cloud)"]
-        INF_Client["🖥️ Client Browser<br/>(HTTPS / SSL)"]
-        INF_Edge["🌐 Vercel Edge Network<br/>(Global CDN)"]
-        INF_Frontend["⚛️ React Single Page App<br/>(Client-Side Router)"]
-        INF_Serverless["⚡ Vercel Serverless API<br/>(/api Express Router)"]
-        INF_Storage["💾 In-Memory SQLite DB<br/>(sql.js WASM Engine)"]
-    end
-
-    %% CONNECTORS / FLOWS
-    Guest --> P_Home & P_Events
-    Student --> P_Events & P_Detail & P_MyReg & P_Contact
-    Organizer --> P_Create & P_Detail
-    Admin --> P_Admin
-
-    P_Home & P_Events & P_Detail & P_Login & P_Reg & P_MyReg & P_Create & P_Admin & P_Patterns & P_Contact --> S_Auth & S_Event & S_Reg & S_Notif
-
-    S_Auth & S_Event & S_Reg & S_Notif --> R_Auth & R_Event & R_Reg & R_Admin & R_Pat & R_Cont
-
-    R_Auth --> M_Auth --> Ctrl_Auth --> S_AuthServ
-    R_Event --> M_Auth --> Ctrl_Event --> S_EventServ
-    R_Reg --> M_Auth --> Ctrl_Reg --> S_RegServ
-    R_Admin --> M_Role --> Ctrl_Admin
-    R_Pat --> Ctrl_Pat
-
-    S_AuthServ --> DAO_User
-    S_EventServ --> DP_Proxy --> DAO_Event
-    S_EventServ --> DP_Factory & DP_AbsFact
-    S_EventServ --> DP_Observer --> DP_Bridge
-    S_RegServ --> DP_Chain --> DAO_Reg
-    S_RegServ --> DP_Bridge --> DAO_Notif
-
-    DAO_College --> T_College
-    DAO_User --> T_User
-    DAO_Event --> T_Event
-    DAO_Reg --> T_Reg
-    DAO_Notif --> T_Notif
-    DAO_Contact --> T_Contact
-
-    T_College & T_User & T_Event & T_Reg & T_Notif & T_Contact --> DP_Singleton --> EXT_DB
-
-    DP_Bridge --> EXT_Email & EXT_SMS
-    S_AuthServ --> EXT_JWT
-
-    INF_Client --> INF_Edge --> INF_Frontend
-    INF_Client -- REST API Calls --> INF_Serverless --> INF_Storage
+    Student A->>RS: cancelRegistration(regId)
+    RS->>DB: UPDATE REGISTRATION SET status = 'CANCELLED'
+    RS->>DB: UPDATE EVENT SET currentRegistrations = currentRegistrations - 1
+    RS->>WS: promoteNextInQueue(eventId)
+    WS->>DB: SELECT * FROM REGISTRATION WHERE status = 'WAITLISTED' ORDER BY queuePosition LIMIT 1
+    WS->>DB: UPDATE REGISTRATION SET status = 'CONFIRMED', queuePosition = NULL
+    WS->>DB: UPDATE EVENT SET currentRegistrations = currentRegistrations + 1
+    WS->>DB: UPDATE REGISTRATION SET queuePosition = queuePosition - 1 WHERE status = 'WAITLISTED'
+    WS->>Obs: notifyObservers(event, 'WAITLIST_PROMOTED', studentId=B)
+    Obs-->>Student B: In-App & Email Alert ("Spot Confirmed for Event!")
+    RS-->>Student A: Cancellation Confirmed (Auto-Promoted Next Student)
 ```
 
 ---
 
-### 🗂️ Domain Entities & Database Class Diagram
+### 2. Event Lifecycle & Administrative Review State Machine
+Events follow a disciplined lifecycle with moderation governance:
 
-```mermaid
-classDiagram
-    class College {
-        +int collegeId PK
-        +string name
-        +string code
-        +string location
-        +string emailDomain
-        +string status
-        +datetime createdAt
-    }
+```text
+DRAFT ──────────────► SUBMITTED ──────────────► APPROVED ──────────────► PUBLISHED ──────────────► COMPLETED / CANCELLED
+                            ▲                         │
+                            │                         ▼
+                            └─── Organizer Edits ◄── REJECTED (with rejectionReason)
+```
 
-    class User {
-        +int userId PK
-        +int collegeId FK
-        +string name
-        +string username
-        +string email
-        +string passwordHash
-        +UserRole role
-        +string department
-        +int year
-        +string phone
-        +string status
-        +datetime createdAt
-    }
+- **Organizer Drafts**: Organizers create events in `DRAFT` status and can refine schedules and venue requirements before submitting.
+- **Moderation Desk**: Platform Admins review `SUBMITTED` events. Admins can either Approve (instantly publishes to the live feed) or Reject with specific feedback (`rejectionReason`).
+- **Resubmission Flow**: If rejected, organizers view admin feedback on their dashboard, update the event details, and re-submit for review.
 
-    class Event {
-        +int eventId PK
-        +int collegeId FK
-        +int organizerId FK
-        +string title
-        +string description
-        +EventCategory category
-        +EventVisibility eventType
-        +date date
-        +string startTime
-        +string endTime
-        +string venue
-        +date registrationDeadline
-        +int capacity
-        +float registrationFee
-        +string contactInformation
-        +EventStatus status
-        +datetime createdAt
-    }
+---
 
-    class Registration {
-        +int registrationId PK
-        +int eventId FK
-        +int studentId FK
-        +RegistrationStatus status
-        +datetime registeredAt
-        +datetime cancelledAt
-    }
+### 3. 6-Stage Registration Validation Chain (Chain of Responsibility)
+When a student attempts registration, the request traverses 6 sequential handlers. If any check fails, the pipeline halts immediately and returns a user-friendly explanation:
 
-    class Notification {
-        +int notificationId PK
-        +int userId FK
-        +int eventId FK
-        +string title
-        +string message
-        +NotificationType type
-        +NotificationChannel channel
-        +boolean isRead
-        +datetime createdAt
-    }
-
-    class ContactRequest {
-        +int requestId PK
-        +string name
-        +string email
-        +string subject
-        +string message
-        +string status
-        +datetime createdAt
-    }
-
-    College "1" --> "0..*" User : registers
-    College "1" --> "0..*" Event : hosts
-    User "1" --> "0..*" Event : organizes
-    User "1" --> "0..*" Registration : registers_for
-    Event "1" --> "0..*" Registration : receives
-    User "1" --> "0..*" Notification : receives
-    Event "1" --> "0..*" Notification : generates
-    User "1" --> "0..*" ContactRequest : submits
+```text
+1. AuthCheckHandler         ──► Verifies valid student JWT and STUDENT role
+           │ Pass
+2. EventStatusHandler       ──► Ensures event is in PUBLISHED state
+           │ Pass
+3. VisibilityCheckHandler   ──► Blocks students from other colleges if INTRA_COLLEGE
+           │ Pass
+4. CollegeEligibilityHandler──► Enforces institutional affiliation requirements
+           │ Pass
+5. DeadlineCheckHandler     ──► Validates current timestamp against registrationDeadline
+           │ Pass
+6. DuplicateRegistration    ──► Prevents double-registration (returns HTTP 409)
+           │ Pass
+     Atomic Capacity & Waitlist Router
 ```
 
 ---
 
-### ⚡ 7-Stage Validation Chain (Chain of Responsibility Pattern)
-
-```mermaid
-flowchart TD
-    Start([🚀 Student Clicks REGISTER]) --> Step1{1. AuthCheckHandler<br/>Is user logged in with valid JWT?}
-    Step1 -- ❌ No --> Fail1[🔴 Error: 401 Unauthorized]
-    Step1 -- ✅ Yes --> Step2{2. EventStatusHandler<br/>Is event PUBLISHED & OPEN?}
-    Step2 -- ❌ No --> Fail2[🔴 Error: Event Not Open for Registration]
-    Step2 -- ✅ Yes --> Step3{3. VisibilityCheckHandler<br/>Is event visible to this user?}
-    Step3 -- ❌ No --> Fail3[🔴 Error: Access Denied to Event]
-    Step3 -- ✅ Yes --> Step4{4. CollegeEligibilityHandler<br/>Does student match INTRA / INTER rule?}
-    Step4 -- ❌ No --> Fail4[🔴 Error: Student College Ineligible for Intra Event]
-    Step4 -- ✅ Yes --> Step5{5. DeadlineCheckHandler<br/>Has registration deadline passed?}
-    Step5 -- ❌ No --> Fail5[🔴 Error: Registration Deadline Passed]
-    Step5 -- ✅ Yes --> Step6{6. CapacityCheckHandler<br/>Is current count < max capacity?}
-    Step6 -- ❌ No --> Fail6[🔴 Error: Event at Maximum Capacity]
-    Step6 -- ✅ Yes --> Step7{7. DuplicateRegistrationHandler<br/>Is student already registered?}
-    Step7 -- ❌ Yes --> Fail7[🔴 Error: Duplicate Registration Exists]
-    Step7 -- ✅ No --> Success([🎉 201 Created: Registration Confirmed<br/>Trigger Observer & Bridge Notifications])
-```
+### 4. College-Based Access Control & Event Visibility (Proxy Pattern)
+The `EventAccessProxy` intercepts all data-layer repository queries:
+- **`INTRA_COLLEGE` Events**: Visible strictly to enrolled students of the host institution and platform admins. Hidden from external students and unauthenticated guests.
+- **`INTER_COLLEGE` Events**: Visible to all verified students across participating colleges.
+- **Draft Shielding**: `DRAFT`, `SUBMITTED`, and `REJECTED` events are shielded from students and only accessible by the creating organizer and platform admins.
 
 ---
 
-### 📋 Key Enums, Types & Relationship Matrix
+## 💡 Key Design Decisions & Rationale
 
-| Key Enum / Type | Values / Variants | Purpose |
+| Pattern | Where Applied | Why Used (Direct Technical Rationale) |
 | :--- | :--- | :--- |
-| **`UserRole`** | `STUDENT`, `EVENT_ORGANIZER`, `PLATFORM_ADMIN` | Role-Based Access Control (RBAC) and permissions |
-| **`EventVisibility`** | `INTRA_COLLEGE`, `INTER_COLLEGE` | Determines multi-tenant event discovery and registration boundaries |
-| **`EventCategory`** | `Technical`, `Cultural`, `Sports`, `Literary`, `Arts`, `Management`, `Workshops`, `Social/Community` | Factory Method instantiation selector & policy resolution |
-| **`EventStatus`** | `DRAFT`, `PUBLISHED`, `REGISTRATION_OPEN`, `REGISTRATION_CLOSED`, `ONGOING`, `COMPLETED`, `CANCELLED` | Lifecycle state machine for events |
-| **`RegistrationStatus`**| `CONFIRMED`, `CANCELLED`, `WAITLISTED` | Status of student event participation |
-| **`NotificationChannel`**| `IN_APP`, `EMAIL`, `SMS` | Delivery channels managed by the Bridge pattern |
-
-| Cardinality / Association | Relationship Description |
-| :--- | :--- |
-| **`College 1 ──< 0..* User`** | An institution registers multiple students and organizers. |
-| **`College 1 ──< 0..* Event`** | An institution hosts both intra-college and inter-college events. |
-| **`User (Organizer) 1 ──< 0..* Event`** | An organizer creates, updates, and manages multiple event listings. |
-| **`User (Student) 1 ──< 0..* Registration`**| A student can register for multiple events across institutions. |
-| **`Event 1 ──< 0..* Registration`** | An event maintains an active roster of registered student participants. |
-| **`User 1 ──< 0..* Notification`** | Users receive targeted notifications across in-app, email, and SMS channels. |
-| **`Event 1 ──< 0..* Notification`** | Event updates and announcements trigger automatic subscriber broadcasts. |
+| **Factory Method** | `EventFactory` (`Technical`, `Cultural`, `Sports`, `Workshop`, `Seminar`) | Encapsulates domain defaults and eligibility guidelines per category without repetitive controller code. |
+| **Chain of Responsibility** | `RegistrationValidationChain` (6 Handlers) | Decouples individual validation rules (auth, status, visibility, deadline, duplicate) into isolated, testable, single-responsibility classes. |
+| **Proxy Pattern** | `EventAccessProxy` | Enforces college-based visibility and shields unapproved drafts at the repository boundary before returning data. |
+| **Observer Pattern** | `EventSubject` (`RegisteredStudentsObserver`, `OrganizerObserver`, `AdminAuditObserver`) | Decouples side-effect notification dispatches from core registration and waitlist business logic. |
+| **Singleton Pattern** | `DatabaseManager`, `EventSubject` | Guarantees a single database connection and event bus instance across concurrent requests. |
 
 ---
 
-## 📐 Design Pattern Architecture Overview
+## ⚡ Technical Challenges & Solutions
 
-| Pattern | Implementation Class | Location | Description |
-| :--- | :--- | :--- | :--- |
-| **1. Singleton** | `DatabaseManager` | `backend/src/db/DatabaseManager.ts` | Encapsulates single SQLite database connection |
-| **2. Chain of Responsibility** | `RegistrationValidationChain` | `backend/src/patterns/chain/` | Sequential 7-step registration validation chain |
-| **3. Factory Method** | `EventFactory` | `backend/src/patterns/factory/EventFactory.ts` | Encapsulates category-specific event creation |
-| **4. Proxy** | `EventAccessProxy` | `backend/src/patterns/proxy/EventAccessProxy.ts` | Enforces college-based visibility and access rules |
-| **5. Abstract Factory** | `EventComponentFactory` | `backend/src/patterns/abstractFactory/` | Creates related families (Event, RegPolicy, EligPolicy) |
-| **6. Bridge** | `NotificationBridge` | `backend/src/patterns/bridge/NotificationBridge.ts` | Decouples notification types from channels (InApp, Email, SMS) |
-| **7. Observer** | `EventSubject` | `backend/src/patterns/observer/EventSubject.ts` | Dispatches event change alerts to registered students |
-| **8. Database Connectivity** | `Repository Classes` | `backend/src/repositories/` | Decoupled Data Access Objects for database persistence |
+### 1. Preventing Race Conditions in Concurrent Registrations & Waitlist Promotion
+- **Problem**: When an event has 1 remaining seat (`99/100`) and two concurrent registration requests arrive simultaneously, a naive check-then-insert pattern could result in overbooking (`101/100`).
+- **Solution**: SQLite operations serialize through an asynchronous promise queue and transaction lock in `DatabaseManager`. All capacity checks and waitlist queue insertions execute within atomic transactions.
 
-📖 *For full design pattern breakdowns and UML diagrams, check [DESIGN_PATTERNS.md](file:///c:/Users/HP/OneDrive/Desktop/EventBridge/DESIGN_PATTERNS.md), [JAVA_DESIGN_PATTERNS.md](file:///c:/Users/HP/OneDrive/Desktop/EventBridge/JAVA_DESIGN_PATTERNS.md), and [UML_DIAGRAMS.md](file:///c:/Users/HP/OneDrive/Desktop/EventBridge/UML_DIAGRAMS.md).*
+### 2. Derived Registration Status
+- **Problem**: Storing a boolean `isRegistrationOpen` flag in the database creates stale data when registration deadlines expire without a background worker actively mutating the table.
+- **Solution**: `isRegistrationOpen` is dynamically derived at the service layer:
+  $$\text{isRegistrationOpen} = (\text{status} = \text{'PUBLISHED'}) \land (\text{now} \ge \text{registrationStartTime}) \land (\text{now} \le \text{registrationDeadline})$$
+
+### 3. Serverless SQLite WASM Persistence
+- **Problem**: Running SQLite on serverless platforms (like Vercel) lacks native file persistence.
+- **Solution**: `DatabaseManager` loads `sql.js` WASM binaries dynamically with in-memory execution and writes snapshots to `/tmp/eventbridge.db` on disk updates.
 
 ---
 
-## 🛠️ Local Setup Instructions
+## 🧪 Automated Test Suite
+
+EventBridge includes 5 modular, independent test suites in `backend/tests/`:
+
+```text
+backend/tests/
+├── event.test.ts          # Event creation, category defaults, validation
+├── lifecycle.test.ts      # Draft -> Submitted -> Approved/Rejected -> Published flow
+├── authorization.test.ts  # Proxy isolation & RBAC enforcement
+├── registration.test.ts   # Validation chain, duplicate prevention, deadline checks
+└── waitlist.test.ts       # Capacity limits, waitlist queuing, and cancellation auto-promotion
+```
+
+### Running Tests Locally:
+
+```bash
+cd backend
+npm test
+```
+
+### Test Suite Execution Output:
+```text
+====================================================
+🚀 EVENTBRIDGE AUTOMATED TEST RUNNER
+====================================================
+
+[INFO] Starting EventBridge Database Seeding...
+[INFO] Database seeding completed successfully.
+
+🧪 Running Suite: Event Factory & Creation Tests...
+✅ Event Factory & Creation Tests Passed!
+
+🧪 Running Suite: Event Lifecycle & Approval State Machine Tests...
+✅ Event Lifecycle & Approval State Machine Tests Passed!
+
+🧪 Running Suite: Proxy Pattern & College Isolation Authorization Tests...
+✅ Proxy Pattern & College Isolation Authorization Tests Passed!
+
+🧪 Running Suite: Registration Validation Chain & Duplicate Protection Tests...
+✅ Registration Validation Chain & Duplicate Protection Tests Passed!
+
+🧪 Running Suite: Waitlist Management & Auto-Promotion Tests...
+✅ Waitlist Management & Auto-Promotion Tests Passed!
+
+====================================================
+🎉 ALL 5 TEST SUITES PASSED SUCCESSFULLY (100% GREEN)
+====================================================
+```
+
+---
+
+## 🚀 Local Development Setup
 
 ### Prerequisites
-- Node.js (v18+)
-- npm (v9+)
+- **Node.js**: v18.0.0 or higher
+- **npm**: v9.0.0 or higher
 
-### Installation & Launch
+### 1. Clone the Repository
+```bash
+git clone https://github.com/Bhumika197/EventBridge.git
+cd EventBridge
+```
 
-1. **Clone / Navigate to Project Directory**:
-   ```bash
-   cd EventBridge
-   ```
+### 2. Backend Setup
+```bash
+cd backend
+npm install
+npm run seed       # Seeds 6 colleges, 100 users, and sample events
+npm run dev        # Starts backend server on http://localhost:5000
+```
 
-2. **Start Backend Server**:
-   ```bash
-   cd backend
-   npm install
-   npm run dev
-   ```
-   The backend server runs on `http://localhost:5000`.
-
-3. **Start Frontend Client**:
-   ```bash
-   cd ../frontend
-   npm install
-   npm run dev
-   ```
-   The frontend application runs on `http://localhost:3000`.
+### 3. Frontend Setup
+```bash
+cd ../frontend
+npm install
+npm run dev        # Starts Vite dev server on http://localhost:5173
+```
 
 ---
 
-## 📡 API Documentation
+## 📡 REST API Reference
 
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - Student registration
-- `GET /api/events/eligible` - Fetch user-eligible events (filtered by Proxy)
-- `GET /api/events/:id` - Fetch detailed event metadata
-- `POST /api/events` - Create event (Organizer only)
-- `POST /api/registrations/event/:eventId` - Register student (Runs Chain of Responsibility)
-- `GET /api/registrations/my-registrations` - Student's active registrations
-- `POST /api/events/:id/announcement` - Broadcast organizer announcement (Observer + Bridge)
-- `GET /api/patterns` - Metadata for Design Pattern & UML Explorer
+| Endpoint | Method | Role | Description |
+| :--- | :--- | :--- | :--- |
+| `/api/auth/login` | `POST` | Public | Authenticates user and returns JWT token |
+| `/api/auth/register` | `POST` | Public | Student account registration with institutional domain check |
+| `/api/auth/me` | `GET` | Authenticated | Fetches current user profile and role |
+| `/api/events` | `GET` | Public / Auth | Returns paginated events with search and category filters |
+| `/api/events/eligible` | `GET` | Public / Auth | Returns events filtered by user eligibility via `EventAccessProxy` |
+| `/api/events/pending-reviews` | `GET` | Platform Admin | Fetches submitted events awaiting moderation |
+| `/api/events` | `POST` | Organizer / Admin | Creates a new event (defaults to `DRAFT`) |
+| `/api/events/:id/submit` | `POST` | Organizer | Submits draft or rejected event for admin review |
+| `/api/events/:id/review` | `POST` | Platform Admin | Approves (`PUBLISHED`) or Rejects (with reason) an event |
+| `/api/events/:id/cancel` | `POST` | Organizer / Admin | Cancels an event and notifies registered students |
+| `/api/registrations/event/:id` | `POST` | Student | Registers for event or joins waitlist if capacity is reached |
+| `/api/registrations/:id` | `DELETE` | Student | Cancels registration and triggers auto-promotion of next waitlisted student |
+| `/api/registrations/my-registrations` | `GET` | Student | Returns student's confirmed and waitlisted events |
+| `/api/registrations/notifications` | `GET` | Authenticated | Returns in-app notifications and announcements |
+| `/api/admin/stats` | `GET` | Platform Admin | Returns platform metrics and enrollment statistics |
+
+---
+
+## 🔮 Future Improvements
+
+- **QR Code Attendance Verification**: Generate dynamic cryptographic QR codes for fast mobile check-ins at event entrances.
+- **Webhook Integrations**: Enable organizers to receive instant Discord/Slack notifications when event registrations hit milestones.
+- **Team / Group Registrations**: Support multi-student hackathon and sports squad registrations under a single team captain.

@@ -1,27 +1,11 @@
 import { Event } from '../../types';
 import { RegistrationRepository } from '../../repositories/RegistrationRepository';
-import {
-  NotificationBridge,
-  EventUpdatedNotification,
-  EventCancelledNotification,
-  OrganizerAnnouncementNotification,
-  EmailChannel,
-  InAppChannel
-} from '../bridge/NotificationBridge';
-
-/**
- * OBSERVER DESIGN PATTERN
- * 
- * Problem: When an event venue, date, schedule, or status changes, manually writing logic
- * to find and notify every student, organizer, and administrator leads to tight coupling and duplicated logic.
- * 
- * Solution: Define a one-to-many dependency between EventSubject (Subject) and Observer objects
- * so that when the event changes, all dependents are notified automatically.
- */
+import { NotificationRepository } from '../../repositories/NotificationRepository';
+import { logger } from '../../utils/logger';
 
 export interface IEventObserver {
   getObserverName(): string;
-  onEventChanged(event: Event, changeType: string, message?: string): Promise<void>;
+  onEventChanged(event: Event, changeType: string, message?: string, targetUserId?: number): Promise<void>;
 }
 
 export class EventSubject {
@@ -47,12 +31,12 @@ export class EventSubject {
     this.observers = this.observers.filter(o => o.getObserverName() !== observer.getObserverName());
   }
 
-  public async notifyObservers(event: Event, changeType: string, message?: string): Promise<void> {
+  public async notifyObservers(event: Event, changeType: string, message?: string, targetUserId?: number): Promise<void> {
     for (const observer of this.observers) {
       try {
-        await observer.onEventChanged(event, changeType, message);
+        await observer.onEventChanged(event, changeType, message, targetUserId);
       } catch (err) {
-        console.error(`Observer error [${observer.getObserverName()}]:`, err);
+        logger.error(`Observer error [${observer.getObserverName()}]:`, err);
       }
     }
   }
@@ -64,42 +48,68 @@ export class EventSubject {
 
 export class RegisteredStudentsObserver implements IEventObserver {
   private regRepo = new RegistrationRepository();
+  private notifRepo = new NotificationRepository();
 
   getObserverName(): string { return 'RegisteredStudentsObserver'; }
 
-  async onEventChanged(event: Event, changeType: string, message?: string): Promise<void> {
+  async onEventChanged(event: Event, changeType: string, message?: string, targetUserId?: number): Promise<void> {
+    if (changeType === 'WAITLIST_PROMOTED' && targetUserId) {
+      // Direct notification for promoted student
+      await this.notifRepo.create(
+        targetUserId,
+        event.eventId,
+        'Waitlist Promotion',
+        'In-App',
+        message || `You have been promoted from the waitlist to CONFIRMED for "${event.title}".`
+      );
+      await this.notifRepo.create(
+        targetUserId,
+        event.eventId,
+        'Waitlist Promotion',
+        'Email',
+        `[Simulated Email] Subject: Spot Confirmed for ${event.title} | Body: ${message}`
+      );
+      return;
+    }
+
     const registrations = await this.regRepo.findByEvent(event.eventId);
     if (registrations.length === 0) return;
 
-    let notificationBridge: NotificationBridge;
-
-    if (changeType === 'CANCELLED') {
-      notificationBridge = new EventCancelledNotification(new EmailChannel());
-    } else if (changeType === 'ANNOUNCEMENT') {
-      notificationBridge = new OrganizerAnnouncementNotification(new InAppChannel());
-    } else {
-      notificationBridge = new EventUpdatedNotification(new InAppChannel());
-    }
-
     for (const reg of registrations) {
-      if (reg.status === 'CONFIRMED' || reg.status === 'PENDING') {
-        await notificationBridge.dispatch(reg.studentId, event.eventId, event.title, message);
+      if (reg.status === 'CONFIRMED' || reg.status === 'WAITLISTED') {
+        const notifType = changeType === 'CANCELLED' 
+          ? 'Event Cancelled' 
+          : changeType === 'ANNOUNCEMENT' 
+            ? 'Organizer Announcement' 
+            : 'Event Updated';
+
+        await this.notifRepo.create(
+          reg.studentId,
+          event.eventId,
+          notifType,
+          'In-App',
+          message || `Event update for "${event.title}": ${changeType}`
+        );
       }
     }
   }
 }
 
 export class OrganizerObserver implements IEventObserver {
+  private notifRepo = new NotificationRepository();
+
   getObserverName(): string { return 'OrganizerObserver'; }
 
   async onEventChanged(event: Event, changeType: string, message?: string): Promise<void> {
-    const inAppBridge = new EventUpdatedNotification(new InAppChannel());
-    await inAppBridge.dispatch(
-      event.organizerId,
-      event.eventId,
-      event.title,
-      `[Organizer Confirmation] Action '${changeType}' recorded for your event "${event.title}".`
-    );
+    if (changeType === 'CREATED' || changeType === 'SUBMITTED' || changeType === 'STATUS_CHANGE') {
+      await this.notifRepo.create(
+        event.organizerId,
+        event.eventId,
+        'Event Updated',
+        'In-App',
+        `[Organizer Notice] Event "${event.title}" is now in state: ${event.status}.`
+      );
+    }
   }
 }
 
@@ -107,6 +117,6 @@ export class AdminAuditObserver implements IEventObserver {
   getObserverName(): string { return 'AdminAuditObserver'; }
 
   async onEventChanged(event: Event, changeType: string, message?: string): Promise<void> {
-    console.log(`[Admin Audit Observer] Event #${event.eventId} ("${event.title}") triggered change '${changeType}'. Info: ${message || 'None'}`);
+    logger.info(`[Admin Audit] Event #${event.eventId} ("${event.title}") action: '${changeType}' | Details: ${message || 'N/A'}`);
   }
 }

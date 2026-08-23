@@ -32,7 +32,7 @@ export class AdminController {
           totalEvents: events.length,
           activeEvents: activeEvents.length,
           totalRegistrations: registrations.length,
-          confirmedRegistrations: registrations.filter(r => r.status === 'CONFIRMED').length
+          confirmedRegistrations: registrations.filter((r: any) => r.status === 'CONFIRMED').length
         }
       });
     } catch (err: any) {

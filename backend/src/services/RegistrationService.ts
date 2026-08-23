@@ -2,23 +2,35 @@ import { RegistrationValidationChain } from '../patterns/chain/RegistrationValid
 import { RegistrationRepository } from '../repositories/RegistrationRepository';
 import { EventRepository } from '../repositories/EventRepository';
 import { UserRepository } from '../repositories/UserRepository';
-import { RegistrationConfirmationNotification, InAppChannel, EmailChannel } from '../patterns/bridge/NotificationBridge';
+import { NotificationRepository } from '../repositories/NotificationRepository';
+import { WaitlistService } from './WaitlistService';
 import { Registration, RegistrationValidationResult, User } from '../types';
+import { logger } from '../utils/logger';
 
 export class RegistrationService {
   private validationChain: RegistrationValidationChain;
   private regRepo: RegistrationRepository;
   private eventRepo: EventRepository;
   private userRepo: UserRepository;
+  private notifRepo: NotificationRepository;
+  private waitlistService: WaitlistService;
 
   constructor() {
     this.validationChain = new RegistrationValidationChain();
     this.regRepo = new RegistrationRepository();
     this.eventRepo = new EventRepository();
     this.userRepo = new UserRepository();
+    this.notifRepo = new NotificationRepository();
+    this.waitlistService = new WaitlistService();
   }
 
-  public async registerStudentForEvent(studentId: number, eventId: number): Promise<{ success: boolean; registration?: Registration; validationResult: RegistrationValidationResult }> {
+  public async registerStudentForEvent(studentId: number, eventId: number): Promise<{
+    success: boolean;
+    registration?: Registration;
+    status?: 'CONFIRMED' | 'WAITLISTED';
+    queuePosition?: number;
+    validationResult: RegistrationValidationResult;
+  }> {
     const student = await this.userRepo.findById(studentId);
     const event = await this.eventRepo.findById(eventId);
 
@@ -35,7 +47,7 @@ export class RegistrationService {
     const existingReg = await this.regRepo.findByStudentAndEvent(studentId, eventId);
     const isAlreadyRegistered = !!(existingReg && existingReg.status !== 'CANCELLED');
 
-    // Run the explicit Chain of Responsibility Validation
+    // 1. Run the 6-stage Validation Chain
     const validationResult = await this.validationChain.validate({
       student,
       event,
@@ -46,25 +58,53 @@ export class RegistrationService {
       return { success: false, validationResult };
     }
 
-    // All validation handlers passed! Proceed with registration
-    const registration = await this.regRepo.create(eventId, studentId);
-    await this.eventRepo.incrementRegistrations(eventId, 1);
+    // 2. Capacity Check & Atomic Registration / Waitlist routing
+    const confirmedCount = await this.regRepo.countConfirmed(eventId);
 
-    // Trigger Notification using Bridge Pattern (In-App + Simulated Email)
-    const inAppBridge = new RegistrationConfirmationNotification(new InAppChannel());
-    const emailBridge = new RegistrationConfirmationNotification(new EmailChannel());
+    if (confirmedCount < event.capacity) {
+      // Direct Confirmation
+      const registration = await this.regRepo.createConfirmed(eventId, studentId);
+      await this.eventRepo.incrementRegistrations(eventId, 1);
 
-    await inAppBridge.dispatch(studentId, eventId, event.title);
-    await emailBridge.dispatch(studentId, eventId, event.title);
+      logger.info(`Confirmed registration: Student #${studentId} for Event #${eventId} ("${event.title}")`);
 
-    return {
-      success: true,
-      registration,
-      validationResult: { allowed: true }
-    };
+      await this.notifRepo.create(
+        studentId,
+        eventId,
+        'Registration Confirmation',
+        'In-App',
+        `Your registration for "${event.title}" has been confirmed! See you at ${event.venue}.`
+      );
+
+      return {
+        success: true,
+        status: 'CONFIRMED',
+        registration,
+        validationResult: { allowed: true }
+      };
+    } else {
+      // Event Capacity is Full -> Place student into Waitlist
+      const waitlistReg = await this.waitlistService.addToWaitlist(studentId, eventId);
+
+      await this.notifRepo.create(
+        studentId,
+        eventId,
+        'Waitlist Confirmation',
+        'In-App',
+        `Event "${event.title}" is full. You are on the waitlist at queue position #${waitlistReg.queuePosition}. We will notify you if a spot opens!`
+      );
+
+      return {
+        success: true,
+        status: 'WAITLISTED',
+        registration: waitlistReg,
+        queuePosition: waitlistReg.queuePosition,
+        validationResult: { allowed: true, canJoinWaitlist: true }
+      };
+    }
   }
 
-  public async cancelRegistration(registrationId: number, studentId: number): Promise<void> {
+  public async cancelRegistration(registrationId: number, studentId: number): Promise<{ success: boolean; promotedStudent?: Registration | null }> {
     const reg = await this.regRepo.findById(registrationId);
     if (!reg) {
       throw new Error('Registration record not found.');
@@ -78,8 +118,25 @@ export class RegistrationService {
       throw new Error('Registration is already cancelled.');
     }
 
+    const previousStatus = reg.status;
+    const eventId = reg.eventId;
+
+    // Cancel the registration
     await this.regRepo.cancel(registrationId);
-    await this.eventRepo.incrementRegistrations(reg.eventId, -1);
+
+    let promoted: Registration | null = null;
+
+    if (previousStatus === 'CONFIRMED') {
+      await this.eventRepo.incrementRegistrations(eventId, -1);
+      logger.info(`Registration #${registrationId} CANCELLED by Student #${studentId} for Event #${eventId}`);
+
+      // Check if there is a waitlisted student to auto-promote
+      promoted = await this.waitlistService.promoteNextInQueue(eventId);
+    } else {
+      logger.info(`Waitlist reservation #${registrationId} CANCELLED by Student #${studentId} for Event #${eventId}`);
+    }
+
+    return { success: true, promotedStudent: promoted };
   }
 
   public async getStudentRegistrations(studentId: number): Promise<Registration[]> {

@@ -7,7 +7,7 @@ export class AuthCheckHandler extends ValidationHandler {
     if (!context.student) {
       return {
         allowed: false,
-        reason: 'Authentication required. Please log in as a student to register.',
+        reason: 'Authentication required. Please sign in as a student to register.',
         handlerName: 'AuthCheckHandler'
       };
     }
@@ -26,31 +26,31 @@ export class AuthCheckHandler extends ValidationHandler {
 export class EventStatusHandler extends ValidationHandler {
   protected async validate(context: ValidationContext): Promise<RegistrationValidationResult> {
     const status = context.event.status;
-    if (status === 'DRAFT') {
+    if (status === 'DRAFT' || status === 'SUBMITTED' || status === 'APPROVED') {
       return {
         allowed: false,
-        reason: 'This event is currently in draft mode and not accepting registrations.',
+        reason: 'This event is not yet published for open registrations.',
+        handlerName: 'EventStatusHandler'
+      };
+    }
+    if (status === 'REJECTED') {
+      return {
+        allowed: false,
+        reason: 'This event was not approved for publication.',
         handlerName: 'EventStatusHandler'
       };
     }
     if (status === 'CANCELLED') {
       return {
         allowed: false,
-        reason: 'This event has been cancelled by the organizer.',
+        reason: 'This event has been cancelled by the organizing team.',
         handlerName: 'EventStatusHandler'
       };
     }
     if (status === 'COMPLETED') {
       return {
         allowed: false,
-        reason: 'This event has already been completed.',
-        handlerName: 'EventStatusHandler'
-      };
-    }
-    if (status === 'REGISTRATION_CLOSED') {
-      return {
-        allowed: false,
-        reason: 'Registration for this event is currently closed.',
+        reason: 'This event has already concluded.',
         handlerName: 'EventStatusHandler'
       };
     }
@@ -58,15 +58,15 @@ export class EventStatusHandler extends ValidationHandler {
   }
 }
 
-// 3. Event Visibility Check Handler
+// 3. Visibility Check Handler
 export class VisibilityCheckHandler extends ValidationHandler {
   protected async validate(context: ValidationContext): Promise<RegistrationValidationResult> {
     const { student, event } = context;
     if (event.eventType === 'INTRA_COLLEGE') {
-      if (student && student.collegeId !== event.collegeId) {
+      if (!student || student.collegeId !== event.collegeId) {
         return {
           allowed: false,
-          reason: `Access Restricted: This is an INTRA_COLLEGE event restricted strictly to ${event.organizingCollegeName || 'the organizing college'}.`,
+          reason: `Access Restricted: INTRA_COLLEGE event is open strictly to students of ${event.organizingCollegeName || 'the organizing institution'}.`,
           handlerName: 'VisibilityCheckHandler'
         };
       }
@@ -82,7 +82,7 @@ export class CollegeEligibilityHandler extends ValidationHandler {
     if (event.eventType === 'INTRA_COLLEGE' && student?.collegeId !== event.collegeId) {
       return {
         allowed: false,
-        reason: `College Ineligibility: You belong to College ID #${student?.collegeId}, but this event requires membership in College ID #${event.collegeId}.`,
+        reason: `College Ineligibility: You are registered under College #${student?.collegeId}, but this event requires membership in College #${event.collegeId}.`,
         handlerName: 'CollegeEligibilityHandler'
       };
     }
@@ -90,11 +90,23 @@ export class CollegeEligibilityHandler extends ValidationHandler {
   }
 }
 
-// 5. Registration Deadline Check Handler
+// 5. Registration Window & Deadline Check Handler
 export class DeadlineCheckHandler extends ValidationHandler {
   protected async validate(context: ValidationContext): Promise<RegistrationValidationResult> {
+    const now = Date.now();
+
+    if (context.event.registrationStartTime) {
+      const startTime = new Date(context.event.registrationStartTime).getTime();
+      if (!isNaN(startTime) && now < startTime) {
+        return {
+          allowed: false,
+          reason: `Registration Not Started: Registration opens on ${context.event.registrationStartTime}.`,
+          handlerName: 'DeadlineCheckHandler'
+        };
+      }
+    }
+
     const deadline = new Date(context.event.registrationDeadline).getTime();
-    const now = new Date().getTime();
     if (!isNaN(deadline) && now > deadline) {
       return {
         allowed: false,
@@ -102,32 +114,18 @@ export class DeadlineCheckHandler extends ValidationHandler {
         handlerName: 'DeadlineCheckHandler'
       };
     }
+
     return { allowed: true };
   }
 }
 
-// 6. Capacity Check Handler
-export class CapacityCheckHandler extends ValidationHandler {
-  protected async validate(context: ValidationContext): Promise<RegistrationValidationResult> {
-    const { event } = context;
-    if (event.currentRegistrations >= event.capacity) {
-      return {
-        allowed: false,
-        reason: `Event Full: Maximum capacity of ${event.capacity} participants has been reached.`,
-        handlerName: 'CapacityCheckHandler'
-      };
-    }
-    return { allowed: true };
-  }
-}
-
-// 7. Duplicate Registration Check Handler
+// 6. Duplicate Registration Check Handler
 export class DuplicateRegistrationHandler extends ValidationHandler {
   protected async validate(context: ValidationContext): Promise<RegistrationValidationResult> {
     if (context.isAlreadyRegistered) {
       return {
         allowed: false,
-        reason: 'Already Registered: You are already registered for this event.',
+        reason: 'Duplicate Registration: You are already registered or on the waitlist for this event.',
         handlerName: 'DuplicateRegistrationHandler'
       };
     }

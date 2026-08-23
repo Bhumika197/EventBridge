@@ -1,8 +1,8 @@
 import { EventAccessProxy } from '../patterns/proxy/EventAccessProxy';
 import { EventFactoryProvider, EventCreationData } from '../patterns/factory/EventFactory';
-import { AbstractFactoryProvider } from '../patterns/abstractFactory/EventComponentFactory';
 import { EventSubject, RegisteredStudentsObserver, OrganizerObserver, AdminAuditObserver } from '../patterns/observer/EventSubject';
-import { Event, User, EventStatus } from '../types';
+import { Event, User, EventStatus, EventFilterQuery, PaginatedResult } from '../types';
+import { logger } from '../utils/logger';
 
 export class EventService {
   private eventProxy: EventAccessProxy;
@@ -12,110 +12,187 @@ export class EventService {
     this.eventProxy = new EventAccessProxy();
     this.eventSubject = EventSubject.getInstance();
 
-    // Register observers for event notifications
     this.eventSubject.attach(new RegisteredStudentsObserver());
     this.eventSubject.attach(new OrganizerObserver());
     this.eventSubject.attach(new AdminAuditObserver());
   }
 
+  public deriveRegistrationOpen(event: Event): boolean {
+    if (event.status !== 'PUBLISHED') {
+      return false;
+    }
+    const now = Date.now();
+    if (event.registrationStartTime) {
+      const start = new Date(event.registrationStartTime).getTime();
+      if (!isNaN(start) && now < start) return false;
+    }
+    if (event.registrationDeadline) {
+      const deadline = new Date(event.registrationDeadline).getTime();
+      if (!isNaN(deadline) && now > deadline) return false;
+    }
+    return true;
+  }
+
+  private attachDerivedFields(event?: Event): Event | undefined {
+    if (!event) return undefined;
+    return {
+      ...event,
+      isRegistrationOpen: this.deriveRegistrationOpen(event)
+    };
+  }
+
   public async getEligibleEventsForUser(user?: User): Promise<Event[]> {
-    return this.eventProxy.findAllEligibleForUser(user);
+    const events = await this.eventProxy.findAllEligibleForUser(user);
+    return events.map(e => this.attachDerivedFields(e)!);
+  }
+
+  public async getPaginatedEvents(filters: EventFilterQuery, user?: User): Promise<PaginatedResult<Event>> {
+    const paginated = await this.eventProxy.findPaginated(filters, user);
+    return {
+      ...paginated,
+      data: paginated.data.map(e => this.attachDerivedFields(e)!)
+    };
   }
 
   public async getEventByIdForUser(eventId: number, user?: User) {
-    return this.eventProxy.findByIdForUser(eventId, user);
-  }
-
-  public async getEventsByCollege(collegeId: number): Promise<Event[]> {
-    return this.eventProxy.findByCollege(collegeId);
+    const result = await this.eventProxy.findByIdForUser(eventId, user);
+    if (result.event) {
+      result.event = this.attachDerivedFields(result.event);
+    }
+    return result;
   }
 
   public async getEventsByOrganizer(organizerId: number): Promise<Event[]> {
-    return this.eventProxy.findByOrganizer(organizerId);
+    const events = await this.eventProxy.findByOrganizer(organizerId);
+    return events.map(e => this.attachDerivedFields(e)!);
   }
 
-  public async createEvent(data: EventCreationData): Promise<Event> {
-    // 1. Use Factory Method to instantiate event object with category defaults
+  public async getPendingReviewEvents(user: User): Promise<Event[]> {
+    if (user.role !== 'PLATFORM_ADMIN') {
+      throw new Error('Unauthorized: Only platform administrators can access pending reviews.');
+    }
+    const events = await this.eventProxy.findPendingReview();
+    return events.map(e => this.attachDerivedFields(e)!);
+  }
+
+  public async createEvent(data: EventCreationData, user?: User): Promise<Event> {
     const factory = EventFactoryProvider.getFactory(data.category);
     const eventObject = factory.createEvent(data);
 
-    // 2. Use Abstract Factory to generate category components
-    const componentFactory = AbstractFactoryProvider.getComponentFactory(data.category);
-    const regPolicy = componentFactory.createRegistrationPolicy();
-    const eligPolicy = componentFactory.createEligibilityPolicy();
-
-    // Attach policy info to eligibility description if needed
-    if (regPolicy && eligPolicy) {
-      eventObject.eligibilityDescription += ` | Policy: ${regPolicy.getPolicyName()} (${regPolicy.getRequirements().join(', ')})`;
+    // Initial status defaults to DRAFT unless specified
+    if (!eventObject.status) {
+      eventObject.status = 'DRAFT';
     }
 
-    // 3. Persist via EventAccessProxy / Repository
     const createdEvent = await this.eventProxy.create(eventObject);
+    logger.info(`Event created: "${createdEvent.title}" (ID #${createdEvent.eventId}) with status: ${createdEvent.status}`);
 
-    // 4. Notify Observers of creation
-    await this.eventSubject.notifyObservers(createdEvent, 'CREATED', `New event "${createdEvent.title}" published.`);
-
-    return createdEvent;
+    await this.eventSubject.notifyObservers(createdEvent, 'CREATED', `Event "${createdEvent.title}" created as ${createdEvent.status}.`);
+    return this.attachDerivedFields(createdEvent)!;
   }
 
-  public async updateEvent(eventId: number, updates: Partial<Event>, updatedBy: User): Promise<Event | undefined> {
-    const existing = await this.eventProxy.findById(eventId);
-    if (!existing) {
-      throw new Error('Event not found.');
-    }
-
-    if (updatedBy.role !== 'PLATFORM_ADMIN' && existing.organizerId !== updatedBy.userId) {
-      throw new Error('Unauthorized: You can only edit your own events.');
-    }
-
-    const updatedEvent = await this.eventProxy.update(eventId, updates);
-    if (updatedEvent) {
-      // Trigger Observer Pattern to notify registered students of changes!
-      const changesText = updates.venue ? `Venue changed to ${updates.venue}` : updates.date ? `Date changed to ${updates.date}` : 'Event details updated.';
-      await this.eventSubject.notifyObservers(updatedEvent, 'UPDATED', changesText);
-    }
-    return updatedEvent;
-  }
-
-  public async cancelEvent(eventId: number, reason: string, cancelledBy: User): Promise<void> {
-    const existing = await this.eventProxy.findById(eventId);
-    if (!existing) {
-      throw new Error('Event not found.');
-    }
-
-    if (cancelledBy.role !== 'PLATFORM_ADMIN' && existing.organizerId !== cancelledBy.userId) {
-      throw new Error('Unauthorized: You can only cancel your own events.');
-    }
-
-    await this.eventProxy.updateStatus(eventId, 'CANCELLED');
-    const updatedEvent = (await this.eventProxy.findById(eventId))!;
-
-    // Notify Observers of Cancellation (Triggers Bridge Pattern notifications!)
-    await this.eventSubject.notifyObservers(updatedEvent, 'CANCELLED', reason);
-  }
-
-  public async updateEventStatus(eventId: number, status: EventStatus, user: User): Promise<void> {
+  public async submitForReview(eventId: number, user: User): Promise<Event> {
     const existing = await this.eventProxy.findById(eventId);
     if (!existing) {
       throw new Error('Event not found.');
     }
 
     if (user.role !== 'PLATFORM_ADMIN' && existing.organizerId !== user.userId) {
-      throw new Error('Unauthorized: Only organizer or admin can update event status.');
+      throw new Error('Unauthorized: You can only submit your own events for review.');
     }
 
-    await this.eventProxy.updateStatus(eventId, status);
-    const updatedEvent = (await this.eventProxy.findById(eventId))!;
-    await this.eventSubject.notifyObservers(updatedEvent, 'STATUS_CHANGE', `Event status changed to ${status}`);
+    if (existing.status !== 'DRAFT' && existing.status !== 'REJECTED') {
+      throw new Error(`Cannot submit event with status '${existing.status}'. Only DRAFT or REJECTED events can be submitted.`);
+    }
+
+    await this.eventProxy.updateStatus(eventId, 'SUBMITTED');
+    const updated = (await this.eventProxy.findById(eventId))!;
+    logger.info(`Event #${eventId} submitted for administrative review by user #${user.userId}`);
+
+    await this.eventSubject.notifyObservers(updated, 'SUBMITTED', `Event "${updated.title}" submitted for review.`);
+    return this.attachDerivedFields(updated)!;
   }
 
-  public async broadcastAnnouncement(eventId: number, announcement: string, organizer: User): Promise<void> {
+  public async reviewEvent(eventId: number, decision: 'APPROVE' | 'REJECT', rejectionReason?: string, adminUser?: User): Promise<Event> {
+    if (!adminUser || adminUser.role !== 'PLATFORM_ADMIN') {
+      throw new Error('Unauthorized: Only platform administrators can review events.');
+    }
+
     const existing = await this.eventProxy.findById(eventId);
     if (!existing) {
       throw new Error('Event not found.');
     }
 
-    if (organizer.role !== 'PLATFORM_ADMIN' && existing.organizerId !== organizer.userId) {
+    if (existing.status !== 'SUBMITTED') {
+      throw new Error(`Cannot review event with status '${existing.status}'. Event must be in 'SUBMITTED' status.`);
+    }
+
+    if (decision === 'APPROVE') {
+      // Upon approval, move to APPROVED or directly PUBLISHED
+      await this.eventProxy.updateStatus(eventId, 'PUBLISHED', undefined, adminUser.userId);
+      logger.info(`Event #${eventId} APPROVED and PUBLISHED by Admin #${adminUser.userId}`);
+    } else {
+      if (!rejectionReason || !rejectionReason.trim()) {
+        throw new Error('Rejection reason is required when rejecting an event.');
+      }
+      await this.eventProxy.updateStatus(eventId, 'REJECTED', rejectionReason.trim(), adminUser.userId);
+      logger.info(`Event #${eventId} REJECTED by Admin #${adminUser.userId}. Reason: ${rejectionReason}`);
+    }
+
+    const updated = (await this.eventProxy.findById(eventId))!;
+    await this.eventSubject.notifyObservers(
+      updated,
+      decision === 'APPROVE' ? 'APPROVED' : 'REJECTED',
+      decision === 'APPROVE' 
+        ? `Event "${updated.title}" has been approved and published.` 
+        : `Event "${updated.title}" was rejected. Reason: ${rejectionReason}`
+    );
+
+    return this.attachDerivedFields(updated)!;
+  }
+
+  public async updateEvent(eventId: number, updates: Partial<Event>, user: User): Promise<Event> {
+    const existing = await this.eventProxy.findById(eventId);
+    if (!existing) {
+      throw new Error('Event not found.');
+    }
+
+    if (user.role !== 'PLATFORM_ADMIN' && existing.organizerId !== user.userId) {
+      throw new Error('Unauthorized: You can only edit your own events.');
+    }
+
+    const updated = await this.eventProxy.update(eventId, updates);
+    if (!updated) throw new Error('Failed to update event.');
+
+    const changesText = updates.venue ? `Venue changed to ${updates.venue}` : updates.date ? `Date changed to ${updates.date}` : 'Event details updated.';
+    await this.eventSubject.notifyObservers(updated, 'UPDATED', changesText);
+
+    return this.attachDerivedFields(updated)!;
+  }
+
+  public async cancelEvent(eventId: number, reason: string, user: User): Promise<void> {
+    const existing = await this.eventProxy.findById(eventId);
+    if (!existing) {
+      throw new Error('Event not found.');
+    }
+
+    if (user.role !== 'PLATFORM_ADMIN' && existing.organizerId !== user.userId) {
+      throw new Error('Unauthorized: You can only cancel your own events.');
+    }
+
+    await this.eventProxy.updateStatus(eventId, 'CANCELLED', reason, user.userId);
+    const updated = (await this.eventProxy.findById(eventId))!;
+
+    await this.eventSubject.notifyObservers(updated, 'CANCELLED', reason);
+  }
+
+  public async broadcastAnnouncement(eventId: number, announcement: string, user: User): Promise<void> {
+    const existing = await this.eventProxy.findById(eventId);
+    if (!existing) {
+      throw new Error('Event not found.');
+    }
+
+    if (user.role !== 'PLATFORM_ADMIN' && existing.organizerId !== user.userId) {
       throw new Error('Unauthorized.');
     }
 

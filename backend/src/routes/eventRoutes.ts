@@ -5,11 +5,15 @@ import { authenticateToken, requireAuth, requireRole } from '../middleware/authM
 const router = Router();
 const controller = new EventController();
 
+router.get('/', authenticateToken, controller.getEvents);
 router.get('/eligible', authenticateToken, controller.getEligibleEvents);
+router.get('/pending-reviews', authenticateToken, requireAuth, requireRole(['PLATFORM_ADMIN']), controller.getPendingReviews);
 router.get('/organizer/my-events', authenticateToken, requireAuth, requireRole(['EVENT_ORGANIZER', 'PLATFORM_ADMIN']), controller.getOrganizerEvents);
 router.get('/:id', authenticateToken, controller.getEventById);
 
 router.post('/', authenticateToken, requireAuth, requireRole(['EVENT_ORGANIZER', 'PLATFORM_ADMIN']), controller.createEvent);
+router.post('/:id/submit', authenticateToken, requireAuth, requireRole(['EVENT_ORGANIZER', 'PLATFORM_ADMIN']), controller.submitForReview);
+router.post('/:id/review', authenticateToken, requireAuth, requireRole(['PLATFORM_ADMIN']), controller.reviewEvent);
 router.put('/:id', authenticateToken, requireAuth, requireRole(['EVENT_ORGANIZER', 'PLATFORM_ADMIN']), controller.updateEvent);
 router.post('/:id/cancel', authenticateToken, requireAuth, requireRole(['EVENT_ORGANIZER', 'PLATFORM_ADMIN']), controller.cancelEvent);
 router.post('/:id/announcement', authenticateToken, requireAuth, requireRole(['EVENT_ORGANIZER', 'PLATFORM_ADMIN']), controller.sendAnnouncement);

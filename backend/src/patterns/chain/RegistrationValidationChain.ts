@@ -5,7 +5,6 @@ import {
   VisibilityCheckHandler,
   CollegeEligibilityHandler,
   DeadlineCheckHandler,
-  CapacityCheckHandler,
   DuplicateRegistrationHandler
 } from './ConcreteHandlers';
 import { RegistrationValidationResult } from '../../types';
@@ -14,21 +13,19 @@ export class RegistrationValidationChain {
   private head: ValidationHandler;
 
   constructor() {
-    // Construct the explicit Chain of Responsibility:
-    // 1. Auth Check
-    // 2. Event Status Check
-    // 3. Event Visibility Check
-    // 4. College Eligibility Check
-    // 5. Registration Deadline Check
-    // 6. Capacity Check
-    // 7. Duplicate Registration Check
+    // Construct the sequential Chain of Responsibility:
+    // 1. AuthCheckHandler (Authentication & Student Role)
+    // 2. EventStatusHandler (Published status)
+    // 3. VisibilityCheckHandler (Intra vs Inter college)
+    // 4. CollegeEligibilityHandler (Institution affiliation)
+    // 5. DeadlineCheckHandler (Registration window & deadline)
+    // 6. DuplicateRegistrationHandler (Already registered check)
 
     const authCheck = new AuthCheckHandler();
     const eventStatus = new EventStatusHandler();
     const visibility = new VisibilityCheckHandler();
     const collegeEligibility = new CollegeEligibilityHandler();
     const deadline = new DeadlineCheckHandler();
-    const capacity = new CapacityCheckHandler();
     const duplicate = new DuplicateRegistrationHandler();
 
     authCheck
@@ -36,7 +33,6 @@ export class RegistrationValidationChain {
       .setNext(visibility)
       .setNext(collegeEligibility)
       .setNext(deadline)
-      .setNext(capacity)
       .setNext(duplicate);
 
     this.head = authCheck;

@@ -23,7 +23,7 @@ function ensureDbInitialized(): Promise<void> {
       await dbManager.initialize();
       const db = dbManager.getDb();
       const userCount = await db.get<{ count: number }>('SELECT COUNT(*) as count FROM USER');
-      if (!userCount || userCount.count < 100) {
+      if (!userCount || userCount.count === 0) {
         await seedDatabase();
       }
     })().catch((err) => {
