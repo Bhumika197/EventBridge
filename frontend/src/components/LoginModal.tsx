@@ -53,7 +53,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
     setLoading(true);
     setError(null);
     try {
-      await login(username, password);
+      await login(username.trim(), password.trim());
       onClose();
     } catch (err: any) {
       setError(err.message || 'Login failed.');
@@ -66,7 +66,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
     setLoading(true);
     setError(null);
     try {
-      await login(usr, pwd);
+      await login(usr.trim(), pwd.trim());
       onClose();
     } catch (err: any) {
       setError(err.message || 'Quick login failed.');
@@ -80,9 +80,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.registerStudent(regData);
+      const cleanData = {
+        ...regData,
+        name: regData.name.trim(),
+        username: regData.username.trim(),
+        email: regData.email.trim(),
+        password: regData.password.trim(),
+        department: regData.department.trim(),
+        phone: regData.phone.trim()
+      };
+      const res = await api.registerStudent(cleanData);
       if (res.success) {
-        await login(regData.username, regData.password);
+        await login(cleanData.username, cleanData.password);
         onClose();
       } else {
         setError(res.reason || res.message || 'Registration failed.');
@@ -190,13 +199,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
           <div>
             <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Username</label>
+                <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Username or Email</label>
                 <input
                   type="text"
                   className="search-input"
                   style={{ width: '100%' }}
                   required
-                  placeholder="Enter username (e.g. bhumika_rbu)"
+                  placeholder="Enter username or email (e.g. bhumika_rbu or bhumika@rbunagpur.in)"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />

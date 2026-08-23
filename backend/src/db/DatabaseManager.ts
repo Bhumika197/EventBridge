@@ -209,7 +209,7 @@ export class DatabaseManager {
           } catch (e) {
             // ignore
           }
-          self.saveToDisk();
+          self.saveToDisk(true);
           return { lastID, changes: 1 };
         });
       },
@@ -220,7 +220,7 @@ export class DatabaseManager {
             rawDb.exec('BEGIN TRANSACTION;');
             const result = await fn(customDb);
             rawDb.exec('COMMIT;');
-            self.saveToDisk();
+            self.saveToDisk(true);
             return result;
           } catch (err) {
             try {

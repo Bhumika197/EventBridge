@@ -4,6 +4,7 @@ import { UserRepository } from '../repositories/UserRepository';
 import { User } from '../types';
 import { EmailService } from './EmailService';
 import { NotificationBridge, EmailChannel } from '../patterns/bridge/NotificationBridge';
+import { logger } from '../utils/logger';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'eventbridge_secret_key_2026';
 
@@ -17,20 +18,31 @@ export class AuthService {
     this.userRepo = new UserRepository();
   }
 
-  public async login(username: string, passwordPlain: string): Promise<{ token: string; user: Omit<User, 'passwordHash'> }> {
-    const user = await this.userRepo.findByUsername(username);
-    if (!user) {
-      throw new Error('Invalid username or password.');
+  public async login(identifier: string, passwordPlain: string): Promise<{ token: string; user: Omit<User, 'passwordHash'> }> {
+    if (!identifier || !passwordPlain) {
+      throw new Error('Username or email and password are required.');
     }
 
-    const isMatch = await bcrypt.compare(passwordPlain, user.passwordHash);
+    const cleanIdentifier = identifier.trim();
+    const cleanPassword = passwordPlain.trim();
+
+    const user = await this.userRepo.findByIdentifier(cleanIdentifier);
+    if (!user) {
+      logger.warn(`Login failed: Account not found for identifier '${cleanIdentifier}'`);
+      throw new Error('Invalid username/email or password.');
+    }
+
+    const isMatch = await bcrypt.compare(cleanPassword, user.passwordHash);
     if (!isMatch) {
-      throw new Error('Invalid username or password.');
+      logger.warn(`Login failed: Incorrect password for user '${user.username}' (#${user.userId})`);
+      throw new Error('Invalid username/email or password.');
     }
 
     if (user.status !== 'ACTIVE') {
-      throw new Error('Your account is currently inactive. Contact platform admin.');
+      throw new Error('Your account is currently inactive. Please contact your platform administrator.');
     }
+
+    logger.info(`User successfully signed in: '${user.username}' (#${user.userId}, Role: ${user.role})`);
 
     const token = jwt.sign(
       {
@@ -57,47 +69,61 @@ export class AuthService {
     year?: number;
     phone?: string;
   }): Promise<Omit<User, 'passwordHash'>> {
-    const existingUsername = await this.userRepo.findByUsername(data.username.trim());
-    if (existingUsername) {
-      throw new Error(`Username '${data.username}' is already taken. Please choose a different username.`);
+    const cleanUsername = data.username.trim();
+    const cleanEmail = data.email.trim().toLowerCase();
+    const cleanPassword = data.passwordPlain.trim();
+
+    if (!cleanUsername || cleanUsername.length < 3) {
+      throw new Error('Username must be at least 3 characters long.');
     }
 
-    const existingEmail = await this.userRepo.findByEmail(data.email.trim());
+    if (!cleanPassword || cleanPassword.length < 6) {
+      throw new Error('Password must be at least 6 characters long.');
+    }
+
+    const existingUsername = await this.userRepo.findByUsername(cleanUsername);
+    if (existingUsername) {
+      throw new Error(`Username '${cleanUsername}' is already registered. Please choose another username.`);
+    }
+
+    const existingEmail = await this.userRepo.findByEmail(cleanEmail);
     if (existingEmail) {
-      throw new Error(`Email '${data.email}' is already registered. Please sign in or use another email.`);
+      throw new Error(`Email '${cleanEmail}' is already registered. Please sign in with your password.`);
     }
 
     try {
-      const passwordHash = await bcrypt.hash(data.passwordPlain, 10);
+      const passwordHash = await bcrypt.hash(cleanPassword, 10);
 
       const user = await this.userRepo.create({
         name: data.name.trim(),
-        username: data.username.trim(),
-        email: data.email.trim(),
+        username: cleanUsername,
+        email: cleanEmail,
         passwordHash,
-        collegeId: data.collegeId,
+        collegeId: Number(data.collegeId),
         department: data.department ? data.department.trim() : undefined,
-        year: data.year,
-        phone: data.phone,
+        year: data.year ? Number(data.year) : undefined,
+        phone: data.phone ? data.phone.trim() : undefined,
         role: 'STUDENT',
         status: 'ACTIVE'
       });
 
+      logger.info(`New student registered: '${user.username}' (#${user.userId}, Email: ${user.email})`);
+
       const { passwordHash: _, ...userWithoutPassword } = user;
       return userWithoutPassword;
     } catch (err: any) {
-      if (err.message && err.message.includes('USER.username')) {
-        throw new Error(`Username '${data.username}' is already taken. Please choose a different username.`);
+      if (err.message && (err.message.includes('USER.username') || err.message.includes('UNIQUE constraint failed: USER.username'))) {
+        throw new Error(`Username '${cleanUsername}' is already taken. Please choose another username.`);
       }
-      if (err.message && err.message.includes('USER.email')) {
-        throw new Error(`Email '${data.email}' is already registered. Please use another email.`);
+      if (err.message && (err.message.includes('USER.email') || err.message.includes('UNIQUE constraint failed: USER.email'))) {
+        throw new Error(`Email '${cleanEmail}' is already registered. Please sign in.`);
       }
       throw err;
     }
   }
 
   public async requestPasswordReset(email: string): Promise<{ success: boolean; message: string; resetCodeForTesting?: string }> {
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
     const user = await this.userRepo.findByEmail(cleanEmail);
     if (!user) {
       throw new Error(`No registered account found with email '${cleanEmail}'.`);
@@ -131,7 +157,7 @@ export class AuthService {
   }
 
   public async resetPasswordWithCode(email: string, resetCode: string, newPasswordPlain: string): Promise<{ success: boolean; message: string }> {
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
     const stored = resetCodeStore.get(cleanEmail);
 
     if (!stored) {
@@ -152,11 +178,17 @@ export class AuthService {
       throw new Error('User account not found.');
     }
 
-    const passwordHash = await bcrypt.hash(newPasswordPlain, 10);
+    const cleanPassword = newPasswordPlain.trim();
+    if (!cleanPassword || cleanPassword.length < 6) {
+      throw new Error('New password must be at least 6 characters long.');
+    }
+
+    const passwordHash = await bcrypt.hash(cleanPassword, 10);
     await this.userRepo.updatePassword(user.userId, passwordHash);
 
     // Consume code
     resetCodeStore.delete(cleanEmail);
+    logger.info(`Password successfully reset for user '${user.username}' (#${user.userId})`);
 
     return {
       success: true,

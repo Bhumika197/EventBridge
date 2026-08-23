@@ -19,25 +19,39 @@ export class UserRepository {
     );
   }
 
-  public async findByUsername(username: string): Promise<User | undefined> {
+  public async findByIdentifier(identifier: string): Promise<User | undefined> {
     const db = this.dbManager.getDb();
+    const clean = identifier.trim();
     return db.get<User>(
       `SELECT u.*, c.name as collegeName 
        FROM USER u 
        LEFT JOIN COLLEGE c ON u.collegeId = c.collegeId 
-       WHERE u.username = ?`,
-      [username]
+       WHERE LOWER(TRIM(u.username)) = LOWER(?) OR LOWER(TRIM(u.email)) = LOWER(?)`,
+      [clean, clean]
+    );
+  }
+
+  public async findByUsername(username: string): Promise<User | undefined> {
+    const db = this.dbManager.getDb();
+    const clean = username.trim();
+    return db.get<User>(
+      `SELECT u.*, c.name as collegeName 
+       FROM USER u 
+       LEFT JOIN COLLEGE c ON u.collegeId = c.collegeId 
+       WHERE LOWER(TRIM(u.username)) = LOWER(?)`,
+      [clean]
     );
   }
 
   public async findByEmail(email: string): Promise<User | undefined> {
     const db = this.dbManager.getDb();
+    const clean = email.trim();
     return db.get<User>(
       `SELECT u.*, c.name as collegeName 
        FROM USER u 
        LEFT JOIN COLLEGE c ON u.collegeId = c.collegeId 
-       WHERE u.email = ?`,
-      [email]
+       WHERE LOWER(TRIM(u.email)) = LOWER(?)`,
+      [clean]
     );
   }
 
@@ -47,7 +61,7 @@ export class UserRepository {
       `SELECT u.*, c.name as collegeName 
        FROM USER u 
        LEFT JOIN COLLEGE c ON u.collegeId = c.collegeId 
-       ORDER BY u.userId DESC`
+       ORDER BY u.userId ASC`
     );
   }
 
@@ -57,14 +71,14 @@ export class UserRepository {
       `INSERT INTO USER (name, username, email, passwordHash, collegeId, department, year, phone, role, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        user.name,
-        user.username,
-        user.email,
+        user.name.trim(),
+        user.username.trim(),
+        user.email.trim().toLowerCase(),
         user.passwordHash,
         user.collegeId,
-        user.department || null,
+        user.department ? user.department.trim() : null,
         user.year || null,
-        user.phone || null,
+        user.phone ? user.phone.trim() : null,
         user.role,
         user.status || 'ACTIVE'
       ]

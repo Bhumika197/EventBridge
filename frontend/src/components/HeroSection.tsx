@@ -28,7 +28,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onExploreClick, onLogi
         }}
       >
         <Award size={15} />
-        Explore more about the event categories.
+        Academic Software Engineering Architecture & Design Patterns
       </div>
 
       <h1 className="hero-title">
