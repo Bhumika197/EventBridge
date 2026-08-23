@@ -1,9 +1,5 @@
 # EventBridge – College-Integrated Inter-College Event Discovery & Registration Platform
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-event--bridge--beta.vercel.app-blue?style=for-the-badge&logo=vercel)](https://event-bridge-beta.vercel.app/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
-[![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://event-bridge-beta.vercel.app/)
 
 EventBridge is a centralized, full-stack web platform for college students, organizers, and platform administrators to discover, manage, and register for campus events across multiple institutions.
 
