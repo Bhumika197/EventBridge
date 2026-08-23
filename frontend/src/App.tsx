@@ -33,6 +33,7 @@ const MainApp: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<EventCardData | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [loginModalMode, setLoginModalMode] = useState<'login' | 'register' | 'forgot' | 'delete'>('login');
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
   const [contactEvent, setContactEvent] = useState<EventCardData | null>(null);
 
@@ -94,7 +95,10 @@ const MainApp: React.FC = () => {
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        openLoginModal={() => setIsLoginModalOpen(true)}
+        openLoginModal={(mode = 'login') => {
+          setLoginModalMode(mode);
+          setIsLoginModalOpen(true);
+        }}
         toggleNotifDrawer={() => {
           setIsNotifDrawerOpen(!isNotifDrawerOpen);
           if (!isNotifDrawerOpen) loadNotifications();
@@ -234,7 +238,12 @@ const MainApp: React.FC = () => {
         />
       )}
 
-      {isLoginModalOpen && <LoginModal onClose={() => setIsLoginModalOpen(false)} />}
+      {isLoginModalOpen && (
+        <LoginModal
+          initialMode={loginModalMode}
+          onClose={() => setIsLoginModalOpen(false)}
+        />
+      )}
 
       {contactEvent && (
         <ContactOrganizerModal event={contactEvent} onClose={() => setContactEvent(null)} />

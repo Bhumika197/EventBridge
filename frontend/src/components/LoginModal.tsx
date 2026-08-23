@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { X, LogIn, UserPlus, Sparkles, Shield, UserCheck, KeyRound, CheckCircle, Mail } from 'lucide-react';
+import { X, LogIn, UserPlus, Sparkles, Shield, UserCheck, KeyRound, CheckCircle, Mail, Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 
 interface LoginModalProps {
   onClose: () => void;
+  initialMode?: 'login' | 'register' | 'forgot' | 'delete';
 }
 
 const FALLBACK_COLLEGES = [
@@ -16,12 +17,12 @@ const FALLBACK_COLLEGES = [
   { collegeId: 6, name: 'National Business College', emailDomain: 'nbc.edu' }
 ];
 
-export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
-  const { login, colleges } = useAuth();
-  const [modalMode, setModalMode] = useState<'login' | 'register' | 'forgot'>('login');
+export const LoginModal: React.FC<LoginModalProps> = ({ onClose, initialMode = 'login' }) => {
+  const { user, login, logout, colleges } = useAuth();
+  const [modalMode, setModalMode] = useState<'login' | 'register' | 'forgot' | 'delete'>(initialMode);
 
   // Login state
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(user ? user.username : '');
   const [password, setPassword] = useState('');
 
   // Register state
@@ -41,8 +42,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [codeSent, setCodeSent] = useState(false);
-  const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
+  // Delete Account state
+  const [deleteIdentifier, setDeleteIdentifier] = useState(user ? user.username : '');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [confirmCheckbox, setConfirmCheckbox] = useState(false);
+
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,9 +113,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setInfoMessage(null);
     try {
-      const res = await api.forgotPassword(resetEmail);
+      const res = await api.forgotPassword(resetEmail.trim());
       if (res.success) {
         setCodeSent(true);
         setInfoMessage(res.message);
@@ -117,10 +122,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
           setResetCode(res.resetCodeForTesting);
         }
       } else {
-        setError(res.message || 'Failed to send reset code.');
+        setError(res.message || 'Failed to request reset code.');
       }
     } catch (err: any) {
-      setError(err.message || 'Error sending reset code.');
+      setError(err.message || 'Error processing reset request.');
     } finally {
       setLoading(false);
     }
@@ -132,9 +137,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
     setError(null);
     try {
       const res = await api.resetPassword({
-        email: resetEmail,
-        resetCode,
-        newPassword
+        email: resetEmail.trim(),
+        resetCode: resetCode.trim(),
+        newPassword: newPassword.trim()
       });
 
       if (res.success) {
@@ -154,14 +159,47 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
     }
   };
 
+  const handleDeleteAccountSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!confirmCheckbox) {
+      setError('Please check the confirmation box to confirm permanent account deletion.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.deleteAccount({
+        username: deleteIdentifier.trim(),
+        password: deletePassword.trim()
+      });
+
+      if (res.success) {
+        setInfoMessage(res.message || 'Your account and data have been permanently deleted.');
+        if (user) {
+          logout();
+        }
+        setTimeout(() => {
+          onClose();
+        }, 2000);
+      } else {
+        setError(res.message || 'Account deletion failed.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error deleting account.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="glass-panel modal-content" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
+      <div className="glass-panel modal-content" style={{ maxWidth: '540px' }} onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose}>
           <X size={22} />
         </button>
 
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', flexWrap: 'wrap' }}>
           <button
             className={`tab-btn ${modalMode === 'login' ? 'active' : ''}`}
             onClick={() => { setModalMode('login'); setError(null); setInfoMessage(null); }}
@@ -180,6 +218,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
           >
             Forgot Password?
           </button>
+          <button
+            className={`tab-btn ${modalMode === 'delete' ? 'active' : ''}`}
+            style={modalMode === 'delete' ? { color: '#dc2626', borderColor: '#f87171' } : { color: '#ef4444' }}
+            onClick={() => {
+              setModalMode('delete');
+              setError(null);
+              setInfoMessage(null);
+              if (user) setDeleteIdentifier(user.username);
+            }}
+          >
+            Delete Account
+          </button>
         </div>
 
         {error && (
@@ -195,6 +245,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
           </div>
         )}
 
+        {/* 1. SIGN IN MODE */}
         {modalMode === 'login' && (
           <div>
             <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -273,91 +324,97 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
                   style={{ fontSize: '0.78rem', padding: '0.5rem 0.6rem', justifyContent: 'flex-start' }}
                   onClick={() => handleQuickLogin('org_rbu', 'password123')}
                 >
-                  <Sparkles size={14} style={{ color: '#d97706' }} />
-                  Organizer (RBU Cell)
+                  <UserCheck size={14} style={{ color: '#16a34a' }} />
+                  Organizer (RBU Tech Cell)
                 </button>
 
                 <button
                   type="button"
                   className="btn-secondary"
                   style={{ fontSize: '0.78rem', padding: '0.5rem 0.6rem', justifyContent: 'flex-start' }}
-                  onClick={() => handleQuickLogin('org_rcoem', 'password123')}
-                >
-                  <Sparkles size={14} style={{ color: '#16a34a' }} />
-                  Organizer (RCOEM Club)
-                </button>
-
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  style={{ fontSize: '0.78rem', padding: '0.5rem 0.6rem', justifyContent: 'flex-start', gridColumn: 'span 2' }}
                   onClick={() => handleQuickLogin('admin', 'admin123')}
                 >
-                  <Shield size={14} style={{ color: '#16a34a' }} />
-                  Platform Administrator (Governance Access)
+                  <Shield size={14} style={{ color: '#7c3aed' }} />
+                  Platform Admin
                 </button>
               </div>
             </div>
           </div>
         )}
 
+        {/* 2. REGISTRATION MODE */}
         {modalMode === 'register' && (
           <form onSubmit={handleRegisterSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            <div>
-              <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>Full Name *</label>
-              <input
-                type="text"
-                className="search-input"
-                style={{ width: '100%' }}
-                required
-                placeholder="e.g. Bhumika Reddy"
-                value={regData.name}
-                onChange={(e) => setRegData({ ...regData, name: e.target.value })}
-              />
-            </div>
-
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div>
-                <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>Unique Username *</label>
+                <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>Full Name *</label>
                 <input
                   type="text"
                   className="search-input"
                   style={{ width: '100%' }}
                   required
-                  placeholder="e.g. bhumika_rbu"
-                  value={regData.username}
-                  onChange={(e) => setRegData({ ...regData, username: e.target.value })}
+                  placeholder="e.g. Bhumika Sharma"
+                  value={regData.name}
+                  onChange={(e) => setRegData({ ...regData, name: e.target.value })}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>Email (@rcoem.in / @rbunagpur.in) *</label>
+                <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>Username *</label>
                 <input
-                  type="email"
+                  type="text"
                   className="search-input"
                   style={{ width: '100%' }}
                   required
-                  placeholder="bhumika@rbunagpur.in"
-                  value={regData.email}
-                  onChange={(e) => setRegData({ ...regData, email: e.target.value })}
+                  placeholder="e.g. bhumika_s"
+                  value={regData.username}
+                  onChange={(e) => setRegData({ ...regData, username: e.target.value })}
                 />
               </div>
             </div>
 
             <div>
-              <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>College Affiliation *</label>
+              <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>Select College / University *</label>
               <select
-                className="select-input"
-                style={{ width: '100%', color: '#0f172a', backgroundColor: '#ffffff' }}
+                className="search-input"
+                style={{ width: '100%' }}
                 value={regData.collegeId}
                 onChange={(e) => setRegData({ ...regData, collegeId: Number(e.target.value) })}
               >
                 {availableColleges.map((c) => (
-                  <option key={c.collegeId} value={c.collegeId} style={{ color: '#0f172a', backgroundColor: '#ffffff' }}>
+                  <option key={c.collegeId} value={c.collegeId}>
                     {c.name} (@{c.emailDomain})
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div>
+                <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>Institutional Email *</label>
+                <input
+                  type="email"
+                  className="search-input"
+                  style={{ width: '100%' }}
+                  required
+                  placeholder="e.g. bhumika@rbunagpur.in"
+                  value={regData.email}
+                  onChange={(e) => setRegData({ ...regData, email: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>Password *</label>
+                <input
+                  type="password"
+                  className="search-input"
+                  style={{ width: '100%' }}
+                  required
+                  placeholder="Min 6 characters"
+                  value={regData.password}
+                  onChange={(e) => setRegData({ ...regData, password: e.target.value })}
+                />
+              </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -367,56 +424,58 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
                   type="text"
                   className="search-input"
                   style={{ width: '100%' }}
-                  placeholder="Computer Science"
+                  placeholder="e.g. Computer Science"
                   value={regData.department}
                   onChange={(e) => setRegData({ ...regData, department: e.target.value })}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>Academic Year</label>
-                <input
-                  type="number"
+                <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>Year of Study</label>
+                <select
                   className="search-input"
                   style={{ width: '100%' }}
-                  min={1}
-                  max={5}
                   value={regData.year}
                   onChange={(e) => setRegData({ ...regData, year: Number(e.target.value) })}
-                />
+                >
+                  <option value={1}>1st Year</option>
+                  <option value={2}>2nd Year</option>
+                  <option value={3}>3rd Year</option>
+                  <option value={4}>4th Year</option>
+                </select>
               </div>
             </div>
 
             <div>
-              <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>Password *</label>
+              <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>Phone Number (Optional)</label>
               <input
-                type="password"
+                type="tel"
                 className="search-input"
                 style={{ width: '100%' }}
-                required
-                placeholder="Create password"
-                value={regData.password}
-                onChange={(e) => setRegData({ ...regData, password: e.target.value })}
+                placeholder="+91 98765 43210"
+                value={regData.phone}
+                onChange={(e) => setRegData({ ...regData, phone: e.target.value })}
               />
             </div>
 
             <button type="submit" className="btn-primary" style={{ justifyContent: 'center', marginTop: '0.5rem' }} disabled={loading}>
               <UserPlus size={18} />
-              {loading ? 'Creating Account...' : 'Register Student Account'}
+              {loading ? 'Creating Student Account...' : 'Complete Registration'}
             </button>
           </form>
         )}
 
+        {/* 3. FORGOT PASSWORD MODE */}
         {modalMode === 'forgot' && (
           <div>
             {!codeSent ? (
               <form onSubmit={handleRequestCode} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <p style={{ fontSize: '0.88rem', color: '#475569', lineHeight: '1.5' }}>
-                  Enter your registered institutional email address (e.g. <code>bhumika@rbunagpur.in</code> or <code>aarav@rcoem.in</code>). We will dispatch a 6-digit password reset verification code via Email Channel.
-                </p>
+                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                  Enter your registered institutional email. We will generate and dispatch a 6-digit password verification code.
+                </div>
 
                 <div>
-                  <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Registered Student / User Email *</label>
+                  <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Institutional Email Address *</label>
                   <input
                     type="email"
                     className="search-input"
@@ -467,6 +526,83 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
                 </button>
               </form>
             )}
+          </div>
+        )}
+
+        {/* 4. DELETE ACCOUNT MODE */}
+        {modalMode === 'delete' && (
+          <div>
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '0.85rem', marginBottom: '1.25rem', display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
+              <AlertTriangle size={20} style={{ color: '#dc2626', flexShrink: 0, marginTop: '2px' }} />
+              <div style={{ fontSize: '0.82rem', color: '#991b1b', lineHeight: 1.4 }}>
+                <strong>Permanent Action:</strong> Deleting your account will immediately remove your student profile, event registrations, waitlist queue positions, notifications, and contact history. This action cannot be reversed.
+              </div>
+            </div>
+
+            <form onSubmit={handleDeleteAccountSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Username or Email *</label>
+                <input
+                  type="text"
+                  className="search-input"
+                  style={{ width: '100%' }}
+                  required
+                  placeholder="Enter your username or email"
+                  value={deleteIdentifier}
+                  onChange={(e) => setDeleteIdentifier(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Confirm Password *</label>
+                <input
+                  type="password"
+                  className="search-input"
+                  style={{ width: '100%' }}
+                  required
+                  placeholder="Enter your account password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginTop: '0.2rem' }}>
+                <input
+                  type="checkbox"
+                  id="confirm-delete"
+                  style={{ marginTop: '3px', cursor: 'pointer' }}
+                  checked={confirmCheckbox}
+                  onChange={(e) => setConfirmCheckbox(e.target.checked)}
+                />
+                <label htmlFor="confirm-delete" style={{ fontSize: '0.8rem', color: '#475569', cursor: 'pointer', lineHeight: 1.3 }}>
+                  I understand that deleting my account permanently erases all my registrations, waitlist spots, and profile data.
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                style={{
+                  background: '#dc2626',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '0.65rem 1.25rem',
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.7 : 1,
+                  marginTop: '0.5rem'
+                }}
+                disabled={loading}
+              >
+                <Trash2 size={18} />
+                {loading ? 'Deleting Account...' : 'Permanently Delete My Account'}
+              </button>
+            </form>
           </div>
         )}
       </div>

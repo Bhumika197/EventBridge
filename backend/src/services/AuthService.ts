@@ -196,6 +196,37 @@ export class AuthService {
     };
   }
 
+  public async deleteAccount(identifier: string, passwordPlain: string): Promise<{ success: boolean; message: string }> {
+    if (!identifier || !passwordPlain) {
+      throw new Error('Username/Email and password are required to delete your account.');
+    }
+
+    const cleanIdentifier = identifier.trim();
+    const cleanPassword = passwordPlain.trim();
+
+    const user = await this.userRepo.findByIdentifier(cleanIdentifier);
+    if (!user) {
+      throw new Error('Account not found with provided username/email.');
+    }
+
+    const isMatch = await bcrypt.compare(cleanPassword, user.passwordHash);
+    if (!isMatch) {
+      throw new Error('Invalid password. Account deletion rejected.');
+    }
+
+    if (user.role === 'PLATFORM_ADMIN') {
+      throw new Error('Platform administrator accounts cannot be deleted directly.');
+    }
+
+    await this.userRepo.delete(user.userId);
+    logger.info(`Account deleted permanently: '${user.username}' (#${user.userId})`);
+
+    return {
+      success: true,
+      message: `Account '${user.username}' and all associated data have been permanently deleted.`
+    };
+  }
+
   public verifyToken(token: string): any {
     return jwt.verify(token, JWT_SECRET);
   }

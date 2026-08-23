@@ -90,4 +90,19 @@ export class AuthController {
       return res.status(500).json({ success: false, message: err.message });
     }
   };
+
+  public deleteAccount = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { username, password } = req.body;
+      const identifier = username || (req.user ? req.user.username : undefined);
+      if (!identifier || !password) {
+        return res.status(400).json({ success: false, message: 'Username/Email and password are required to delete your account.' });
+      }
+
+      const result = await this.authService.deleteAccount(identifier, password);
+      return res.json({ success: true, message: result.message });
+    } catch (err: any) {
+      return res.status(400).json({ success: false, message: err.message || 'Account deletion failed.' });
+    }
+  };
 }

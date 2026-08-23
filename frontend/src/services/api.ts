@@ -56,6 +56,7 @@ export const api = {
   resetPassword: (data: any) => fetchApi('/auth/reset-password', { method: 'POST', body: JSON.stringify(data) }),
   getCurrentUser: () => fetchApi('/auth/me'),
   getColleges: () => fetchApi('/auth/colleges'),
+  deleteAccount: (data: { username?: string; password: string }) => fetchApi('/auth/delete-account', { method: 'POST', body: JSON.stringify(data) }),
 
   // Events
   getEligibleEvents: () => fetchApi('/events/eligible'),

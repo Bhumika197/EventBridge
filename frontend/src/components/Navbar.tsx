@@ -1,11 +1,11 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Bell, BookOpen, Calendar, Shield, User as UserIcon, LogOut, LogIn, Sparkles } from 'lucide-react';
+import { Bell, BookOpen, Calendar, Shield, User as UserIcon, LogOut, LogIn, Sparkles, Trash2 } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  openLoginModal: () => void;
+  openLoginModal: (mode?: 'login' | 'register' | 'forgot' | 'delete') => void;
   toggleNotifDrawer: () => void;
   unreadCount: number;
 }
@@ -116,13 +116,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {user.collegeName ? (user.collegeName.length > 22 ? user.collegeName.substring(0, 20) + '...' : user.collegeName) : `College #${user.collegeId}`} • {user.role}
               </div>
             </div>
+            <button
+              className="btn-secondary"
+              style={{ padding: '0.4rem 0.55rem', fontSize: '0.78rem', color: '#dc2626', borderColor: '#fecaca' }}
+              title="Permanently Delete Account"
+              onClick={() => openLoginModal('delete')}
+            >
+              <Trash2 size={13} />
+              Delete Account
+            </button>
             <button className="btn-secondary" style={{ padding: '0.4rem 0.65rem', fontSize: '0.82rem' }} onClick={logout}>
               <LogOut size={15} />
               Logout
             </button>
           </div>
         ) : (
-          <button className="btn-primary" onClick={openLoginModal} style={{ padding: '0.5rem 1rem', fontSize: '0.88rem' }}>
+          <button className="btn-primary" onClick={() => openLoginModal('login')} style={{ padding: '0.5rem 1rem', fontSize: '0.88rem' }}>
             <LogIn size={16} />
             Login / Accounts
           </button>

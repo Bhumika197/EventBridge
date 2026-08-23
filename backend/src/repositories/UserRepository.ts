@@ -95,4 +95,14 @@ export class UserRepository {
     const db = this.dbManager.getDb();
     await db.run(`UPDATE USER SET passwordHash = ? WHERE userId = ?`, [passwordHash, userId]);
   }
+
+  public async delete(userId: number): Promise<void> {
+    const db = this.dbManager.getDb();
+    await db.transaction(async (tx) => {
+      await tx.run(`DELETE FROM REGISTRATION WHERE studentId = ?`, [userId]);
+      await tx.run(`DELETE FROM NOTIFICATION WHERE recipientUserId = ?`, [userId]);
+      await tx.run(`DELETE FROM CONTACT_REQUEST WHERE studentId = ?`, [userId]);
+      await tx.run(`DELETE FROM USER WHERE userId = ?`, [userId]);
+    });
+  }
 }

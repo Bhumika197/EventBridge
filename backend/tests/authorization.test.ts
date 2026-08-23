@@ -12,10 +12,13 @@ export async function runAuthorizationTests() {
   const authService = new AuthService();
 
   // 1. Authentication & Registration Persistence Test
+  const testUsername = `fresh_student_${Date.now()}`;
+  const testEmail = `${testUsername}@rbunagpur.in`;
+
   const newStudent = await authService.registerStudent({
     name: 'Test New Student',
-    username: 'fresh_student_99',
-    email: 'fresh.student@rbunagpur.in',
+    username: testUsername,
+    email: testEmail,
     passwordPlain: 'mySecurePass!123',
     collegeId: 1,
     department: 'Computer Science',
@@ -25,28 +28,44 @@ export async function runAuthorizationTests() {
   assert(!!newStudent.userId, 'Registered student must have a valid userId.');
 
   // 1a. Login via exact username
-  const loginByUsername = await authService.login('fresh_student_99', 'mySecurePass!123');
+  const loginByUsername = await authService.login(testUsername, 'mySecurePass!123');
   assert(!!loginByUsername.token, 'Login with username should return valid JWT.');
-  assertEquals(loginByUsername.user.username, 'fresh_student_99', 'Logged in username must match.');
+  assertEquals(loginByUsername.user.username, testUsername, 'Logged in username must match.');
 
   // 1b. Login via email
-  const loginByEmail = await authService.login('fresh.student@rbunagpur.in', 'mySecurePass!123');
+  const loginByEmail = await authService.login(testEmail, 'mySecurePass!123');
   assert(!!loginByEmail.token, 'Login with email should return valid JWT.');
-  assertEquals(loginByEmail.user.email, 'fresh.student@rbunagpur.in', 'Logged in email must match.');
+  assertEquals(loginByEmail.user.email, testEmail, 'Logged in email must match.');
 
   // 1c. Login via case-insensitive username and email with whitespace
-  const loginCaseInsensitive = await authService.login('  FRESH_STUDENT_99  ', 'mySecurePass!123');
+  const loginCaseInsensitive = await authService.login(`  ${testUsername.toUpperCase()}  `, 'mySecurePass!123');
   assert(!!loginCaseInsensitive.token, 'Login with uppercase/whitespace username should succeed.');
 
   // 1d. Login rejection with wrong password
   let failedLogin = false;
   try {
-    await authService.login('fresh_student_99', 'wrongPasswordAttempt');
+    await authService.login(testUsername, 'wrongPasswordAttempt');
   } catch (err: any) {
     failedLogin = true;
     assert(err.message.includes('Invalid'), 'Wrong password must be rejected with invalid message.');
   }
   assert(failedLogin, 'Login with incorrect password must fail.');
+
+  // 1e. Account deletion with wrong password (should fail)
+  let failedDeletion = false;
+  try {
+    await authService.deleteAccount(testUsername, 'wrongPass');
+  } catch (err: any) {
+    failedDeletion = true;
+    assert(err.message.includes('Invalid password'), 'Wrong password on deletion must be rejected.');
+  }
+  assert(failedDeletion, 'Account deletion with incorrect password must fail.');
+
+  // 1f. Account deletion with correct password (should succeed)
+  const delRes = await authService.deleteAccount(testUsername, 'mySecurePass!123');
+  assertEquals(delRes.success, true, 'Valid account deletion should succeed.');
+  const deletedCheck = await userRepo.findByIdentifier(testUsername);
+  assertEquals(deletedCheck, undefined, 'User must no longer exist in database after deletion.');
 
   // 2. Existing Demo Users Login Check
   const studentRBU = (await userRepo.findByUsername('bhumika_rbu'))!; // College: RBU
