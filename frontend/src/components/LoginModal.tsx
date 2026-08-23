@@ -199,28 +199,31 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, initialMode = '
           <X size={22} />
         </button>
 
-        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.35rem', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
           <button
             className={`tab-btn ${modalMode === 'login' ? 'active' : ''}`}
+            style={{ fontSize: '0.8rem', padding: '0.45rem 0.25rem', textAlign: 'center', justifyContent: 'center' }}
             onClick={() => { setModalMode('login'); setError(null); setInfoMessage(null); }}
           >
             Sign In
           </button>
           <button
             className={`tab-btn ${modalMode === 'register' ? 'active' : ''}`}
+            style={{ fontSize: '0.8rem', padding: '0.45rem 0.25rem', textAlign: 'center', justifyContent: 'center' }}
             onClick={() => { setModalMode('register'); setError(null); setInfoMessage(null); }}
           >
-            Student Registration
+            Registration
           </button>
           <button
             className={`tab-btn ${modalMode === 'forgot' ? 'active' : ''}`}
+            style={{ fontSize: '0.8rem', padding: '0.45rem 0.25rem', textAlign: 'center', justifyContent: 'center' }}
             onClick={() => { setModalMode('forgot'); setError(null); setInfoMessage(null); }}
           >
-            Forgot Password?
+            Forgot Pass?
           </button>
           <button
             className={`tab-btn ${modalMode === 'delete' ? 'active' : ''}`}
-            style={modalMode === 'delete' ? { color: '#dc2626', borderColor: '#f87171' } : { color: '#ef4444' }}
+            style={modalMode === 'delete' ? { color: '#dc2626', borderColor: '#f87171', fontSize: '0.8rem', padding: '0.45rem 0.25rem', textAlign: 'center', justifyContent: 'center' } : { color: '#ef4444', fontSize: '0.8rem', padding: '0.45rem 0.25rem', textAlign: 'center', justifyContent: 'center' }}
             onClick={() => {
               setModalMode('delete');
               setError(null);
@@ -228,7 +231,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, initialMode = '
               if (user) setDeleteIdentifier(user.username);
             }}
           >
-            Delete Account
+            Delete Acc
           </button>
         </div>
 
