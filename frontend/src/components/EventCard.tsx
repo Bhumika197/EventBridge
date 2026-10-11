@@ -21,6 +21,11 @@ export interface EventCardData {
   registrationFee: number;
   status: string;
   isRegistered?: boolean;
+  prizePool?: number;
+  minTeamSize?: number;
+  maxTeamSize?: number;
+  speakers?: string[];
+  sponsors?: string[];
 }
 
 interface EventCardProps {
@@ -100,9 +105,16 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onSelect }) => {
               <Users size={14} />
               {event.currentRegistrations} / {event.capacity} Filled
             </span>
-            <span style={{ fontWeight: 700, color: event.registrationFee > 0 ? '#d97706' : '#16a34a' }}>
-              {event.registrationFee > 0 ? `$${event.registrationFee}` : 'FREE'}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              {event.prizePool && event.prizePool > 0 && (
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#b45309', background: '#fef3c7', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #fde68a' }}>
+                  🏆 ₹{event.prizePool.toLocaleString()}
+                </span>
+              )}
+              <span style={{ fontWeight: 700, color: event.registrationFee > 0 ? '#d97706' : '#16a34a' }}>
+                {event.registrationFee > 0 ? `₹${event.registrationFee}` : 'FREE'}
+              </span>
+            </div>
           </div>
         </div>
 

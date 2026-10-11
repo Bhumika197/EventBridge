@@ -18,6 +18,12 @@ export interface EventCreationData {
   registrationFee?: number;
   eligibilityDescription?: string;
   status?: EventStatus;
+  prizePool?: number;
+  minTeamSize?: number;
+  maxTeamSize?: number;
+  speakers?: string[] | string;
+  sponsors?: string[] | string;
+  isInterCollege?: boolean;
   contactInformation?: string;
 }
 

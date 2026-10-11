@@ -22,6 +22,25 @@ export class EventRepository implements IEventRepository {
     this.dbManager = DatabaseManager.getInstance();
   }
 
+  private parseEventRow(event?: Event): Event | undefined {
+    if (!event) return undefined;
+    if (typeof event.speakers === 'string') {
+      try {
+        event.speakers = JSON.parse(event.speakers);
+      } catch {
+        event.speakers = [];
+      }
+    }
+    if (typeof event.sponsors === 'string') {
+      try {
+        event.sponsors = JSON.parse(event.sponsors);
+      } catch {
+        event.sponsors = [];
+      }
+    }
+    return event;
+  }
+
   public async findById(eventId: number): Promise<Event | undefined> {
     const db = this.dbManager.getDb();
     const event = await db.get<Event>(
@@ -32,12 +51,12 @@ export class EventRepository implements IEventRepository {
        WHERE e.eventId = ?`,
       [eventId]
     );
-    return event;
+    return this.parseEventRow(event);
   }
 
   public async findByTitle(title: string): Promise<Event | undefined> {
     const db = this.dbManager.getDb();
-    return db.get<Event>(
+    const event = await db.get<Event>(
       `SELECT e.*, c.name as organizingCollegeName,
         (SELECT COUNT(*) FROM REGISTRATION r WHERE r.eventId = e.eventId AND r.status = 'WAITLISTED') as waitlistCount
        FROM EVENT e
@@ -45,33 +64,36 @@ export class EventRepository implements IEventRepository {
        WHERE e.title = ?`,
       [title]
     );
+    return this.parseEventRow(event);
   }
 
   public async findAll(): Promise<Event[]> {
     const db = this.dbManager.getDb();
-    return db.all<Event[]>(
+    const events = await db.all<Event[]>(
       `SELECT e.*, c.name as organizingCollegeName,
         (SELECT COUNT(*) FROM REGISTRATION r WHERE r.eventId = e.eventId AND r.status = 'WAITLISTED') as waitlistCount
        FROM EVENT e
        JOIN COLLEGE c ON e.collegeId = c.collegeId
        ORDER BY e.date ASC, e.startTime ASC`
     );
+    return events.map(e => this.parseEventRow(e)!);
   }
 
   public async findPendingReview(): Promise<Event[]> {
     const db = this.dbManager.getDb();
-    return db.all<Event[]>(
+    const rows = await db.all<Event[]>(
       `SELECT e.*, c.name as organizingCollegeName
        FROM EVENT e
        JOIN COLLEGE c ON e.collegeId = c.collegeId
        WHERE e.status = 'SUBMITTED'
        ORDER BY e.createdAt DESC`
     );
+    return rows.map(r => this.parseEventRow(r)!);
   }
 
   public async findByCollege(collegeId: number): Promise<Event[]> {
     const db = this.dbManager.getDb();
-    return db.all<Event[]>(
+    const rows = await db.all<Event[]>(
       `SELECT e.*, c.name as organizingCollegeName,
         (SELECT COUNT(*) FROM REGISTRATION r WHERE r.eventId = e.eventId AND r.status = 'WAITLISTED') as waitlistCount
        FROM EVENT e
@@ -80,18 +102,21 @@ export class EventRepository implements IEventRepository {
        ORDER BY e.date ASC, e.startTime ASC`,
       [collegeId]
     );
+    return rows.map(r => this.parseEventRow(r)!);
   }
 
   public async findByOrganizer(organizerId: number): Promise<Event[]> {
     const db = this.dbManager.getDb();
-    return db.all<Event[]>(
+    const rows = await db.all<Event[]>(
       `SELECT e.*, c.name as organizingCollegeName,
         (SELECT COUNT(*) FROM REGISTRATION r WHERE r.eventId = e.eventId AND r.status = 'WAITLISTED') as waitlistCount
        FROM EVENT e
        JOIN COLLEGE c ON e.collegeId = c.collegeId
        WHERE e.organizerId = ?
-       ORDER BY e.createdAt DESC`
+       ORDER BY e.createdAt DESC`,
+      [organizerId]
     );
+    return rows.map(r => this.parseEventRow(r)!);
   }
 
   public async findPaginated(filters: EventFilterQuery, user?: User): Promise<PaginatedResult<Event>> {
@@ -168,7 +193,7 @@ export class EventRepository implements IEventRepository {
     );
 
     return {
-      data,
+      data: data.map(r => this.parseEventRow(r)!),
       total,
       page,
       limit,
@@ -178,12 +203,16 @@ export class EventRepository implements IEventRepository {
 
   public async create(event: Omit<Event, 'eventId' | 'currentRegistrations' | 'createdAt'>): Promise<Event> {
     const db = this.dbManager.getDb();
+    const speakersStr = Array.isArray(event.speakers) ? JSON.stringify(event.speakers) : (event.speakers || '[]');
+    const sponsorsStr = Array.isArray(event.sponsors) ? JSON.stringify(event.sponsors) : (event.sponsors || '[]');
+
     const result = await db.run(
       `INSERT INTO EVENT (
         title, description, category, eventType, collegeId, organizerId, organizerName,
         date, startTime, endTime, venue, registrationStartTime, registrationDeadline, capacity, currentRegistrations,
-        registrationFee, eligibilityDescription, status, contactInformation
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        registrationFee, eligibilityDescription, status, contactInformation,
+        prizePool, minTeamSize, maxTeamSize, speakers, sponsors
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         event.title,
         event.description,
@@ -203,7 +232,12 @@ export class EventRepository implements IEventRepository {
         event.registrationFee || 0,
         event.eligibilityDescription,
         event.status || 'DRAFT',
-        event.contactInformation
+        event.contactInformation,
+        event.prizePool || 0,
+        event.minTeamSize || 1,
+        event.maxTeamSize || 1,
+        speakersStr,
+        sponsorsStr
       ]
     );
 
@@ -216,7 +250,8 @@ export class EventRepository implements IEventRepository {
     const allowedKeys: (keyof Event)[] = [
       'title', 'description', 'category', 'eventType', 'date', 'startTime', 'endTime',
       'venue', 'registrationStartTime', 'registrationDeadline', 'capacity', 'registrationFee',
-      'eligibilityDescription', 'contactInformation'
+      'eligibilityDescription', 'contactInformation', 'prizePool', 'minTeamSize', 'maxTeamSize',
+      'speakers', 'sponsors'
     ];
 
     const updates: string[] = [];
@@ -225,7 +260,11 @@ export class EventRepository implements IEventRepository {
     for (const key of allowedKeys) {
       if (fields[key] !== undefined) {
         updates.push(`${String(key)} = ?`);
-        params.push(fields[key]);
+        let val = fields[key];
+        if ((key === 'speakers' || key === 'sponsors') && Array.isArray(val)) {
+          val = JSON.stringify(val);
+        }
+        params.push(val);
       }
     }
 

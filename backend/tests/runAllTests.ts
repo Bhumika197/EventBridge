@@ -3,6 +3,7 @@ import { runLifecycleTests } from './lifecycle.test';
 import { runAuthorizationTests } from './authorization.test';
 import { runRegistrationTests } from './registration.test';
 import { runWaitlistTests } from './waitlist.test';
+import { runNewPatternsTests } from './newPatterns.test';
 import { setupTestDb } from './testHelper';
 import { seedDatabase } from '../src/seed/seedData';
 
@@ -20,9 +21,10 @@ async function main() {
     await runAuthorizationTests();
     await runRegistrationTests();
     await runWaitlistTests();
+    await runNewPatternsTests();
 
     console.log('====================================================');
-    console.log('🎉 ALL 5 TEST SUITES PASSED SUCCESSFULLY (100% GREEN)');
+    console.log('🎉 ALL 6 TEST SUITES PASSED SUCCESSFULLY (100% GREEN)');
     console.log('====================================================');
     process.exit(0);
   } catch (error) {

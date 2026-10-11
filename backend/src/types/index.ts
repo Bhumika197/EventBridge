@@ -77,10 +77,24 @@ export interface Event {
   rejectionReason?: string;
   reviewedBy?: number;
   reviewedAt?: string;
+  prizePool?: number;
+  minTeamSize?: number;
+  maxTeamSize?: number;
+  speakers?: string[] | string;
+  sponsors?: string[] | string;
+  isInterCollege?: boolean;
   contactInformation: string;
   createdAt?: string;
   organizingCollegeName?: string;
   isRegistrationOpen?: boolean;
+}
+
+export interface EventMementoRecord {
+  mementoId: number;
+  eventId: number;
+  stateJson: string;
+  description: string;
+  createdAt: string;
 }
 
 export interface Registration {

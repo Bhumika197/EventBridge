@@ -9,9 +9,19 @@ router.get('/', authenticateToken, controller.getEvents);
 router.get('/eligible', authenticateToken, controller.getEligibleEvents);
 router.get('/pending-reviews', authenticateToken, requireAuth, requireRole(['PLATFORM_ADMIN']), controller.getPendingReviews);
 router.get('/organizer/my-events', authenticateToken, requireAuth, requireRole(['EVENT_ORGANIZER', 'PLATFORM_ADMIN']), controller.getOrganizerEvents);
+// Pattern Live Demonstration Endpoints
+router.post('/builder/validate', authenticateToken, controller.buildAndValidateEvent);
+router.post('/workflow/run', authenticateToken, controller.runTemplateWorkflow);
+router.post('/mediator/simulate', authenticateToken, controller.simulateMediator);
+router.post('/pricing/calculate', authenticateToken, controller.calculateFee);
+
 router.get('/:id', authenticateToken, controller.getEventById);
 
 router.post('/', authenticateToken, requireAuth, requireRole(['EVENT_ORGANIZER', 'PLATFORM_ADMIN']), controller.createEvent);
+router.post('/:id/clone', authenticateToken, requireAuth, requireRole(['EVENT_ORGANIZER', 'PLATFORM_ADMIN']), controller.cloneEvent);
+router.post('/:id/memento/undo', authenticateToken, requireAuth, requireRole(['EVENT_ORGANIZER', 'PLATFORM_ADMIN']), controller.undoEventEdit);
+router.get('/:id/memento/history', authenticateToken, controller.getEventHistory);
+
 router.post('/:id/submit', authenticateToken, requireAuth, requireRole(['EVENT_ORGANIZER', 'PLATFORM_ADMIN']), controller.submitForReview);
 router.post('/:id/review', authenticateToken, requireAuth, requireRole(['PLATFORM_ADMIN']), controller.reviewEvent);
 router.put('/:id', authenticateToken, requireAuth, requireRole(['EVENT_ORGANIZER', 'PLATFORM_ADMIN']), controller.updateEvent);

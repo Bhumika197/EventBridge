@@ -155,15 +155,61 @@ The `EventAccessProxy` intercepts all data-layer repository queries:
 
 ---
 
-## Key Design Decisions & Rationale
+## 🏛️ Design Patterns Architecture & Feature Mapping
 
-| Pattern | Where Applied | Why Used (Direct Technical Rationale) |
-| :--- | :--- | :--- |
-| **Factory Method** | `EventFactory` (`Technical`, `Cultural`, `Sports`, `Workshop`, `Seminar`) | Encapsulates domain defaults and eligibility guidelines per category without repetitive controller code. |
-| **Chain of Responsibility** | `RegistrationValidationChain` (6 Handlers) | Decouples individual validation rules (auth, status, visibility, deadline, duplicate) into isolated, testable, single-responsibility classes. |
-| **Proxy Pattern** | `EventAccessProxy` | Enforces college-based visibility and shields unapproved drafts at the repository boundary before returning data. |
-| **Observer Pattern** | `EventSubject` (`RegisteredStudentsObserver`, `OrganizerObserver`, `AdminAuditObserver`) | Decouples side-effect notification dispatches from core registration and waitlist business logic. |
-| **Singleton Pattern** | `DatabaseManager`, `EventSubject` | Guarantees a single database connection and event bus instance across concurrent requests. |
+EventBridge is engineered around classic Gang of Four (GoF) object-oriented design patterns and the Model-View-Controller (MVC) architecture. Every pattern directly powers a tangible, visible platform feature:
+
+| Pattern Name | Category | Primary Source File(s) | UML Diagram Reference | Core Feature Powered |
+| :--- | :--- | :--- | :--- | :--- |
+| **Builder** | Creational | [`backend/src/patterns/builder/EventBuilder.ts`](file:///backend/src/patterns/builder/EventBuilder.ts)<br/>[`frontend/src/components/CreateEventWizardModal.tsx`](file:///frontend/src/components/CreateEventWizardModal.tsx) | Class & Sequence Diagram #11 | **"Create Event" Multi-Step Wizard**: Chained assembly of required fields (title, date, college) and optional fields (prize pool, team sizing, speakers, sponsors, inter-college flag) with atomic validation in `build()`. |
+| **Prototype** | Creational | [`backend/src/patterns/prototype/EventPrototype.ts`](file:///backend/src/patterns/prototype/EventPrototype.ts)<br/>[`frontend/src/components/DuplicateEventModal.tsx`](file:///frontend/src/components/DuplicateEventModal.tsx) | Class & Sequence Diagram #12 | **"Duplicate Event" (Clone) Button**: Clones recurring annual college fests with true deep-copying of arrays (`speakers`, `sponsors`), status reset to `DRAFT`, and custom date/venue overrides. |
+| **Factory Method** | Creational | [`backend/src/patterns/factory/EventFactory.ts`](file:///backend/src/patterns/factory/EventFactory.ts) | Class Diagram #2 | **Category Domain Configuration**: Automatically configures category-specific eligibility guidelines, laptop rules, and athletic requirements. |
+| **Abstract Factory** | Creational | [`backend/src/patterns/abstractFactory/EventComponentFactory.ts`](file:///backend/src/patterns/abstractFactory/EventComponentFactory.ts) | Component Diagram #9 | **Cohesive Component Families**: Creates matched product families (Event Data, Registration Policies, Eligibility Rules) per department. |
+| **Singleton** | Creational | [`backend/src/db/DatabaseManager.ts`](file:///backend/src/db/DatabaseManager.ts)<br/>[`backend/src/patterns/observer/EventSubject.ts`](file:///backend/src/patterns/observer/EventSubject.ts) | Class Diagram #2 | **Database & Event Bus Instance**: Guarantees a single shared connection and serialized transaction lock for the SQLite WASM database. |
+| **Proxy** | Structural | [`backend/src/patterns/proxy/EventAccessProxy.ts`](file:///backend/src/patterns/proxy/EventAccessProxy.ts) | Sequence Diagram #4 | **College-Based Access Control**: Enforces institutional isolation (`INTRA_COLLEGE` vs `INTER_COLLEGE`) and shields unapproved drafts at repository boundaries. |
+| **Bridge** | Structural | [`backend/src/patterns/bridge/NotificationBridge.ts`](file:///backend/src/patterns/bridge/NotificationBridge.ts) | Class Diagram #2 | **Multi-Channel Alert Dispatch**: Decouples notification abstractions (Confirmations, Updates, Cancellations) from delivery channels (In-App, Email, SMS). |
+| **Chain of Responsibility** | Behavioral | [`backend/src/patterns/chain/RegistrationValidationChain.ts`](file:///backend/src/patterns/chain/RegistrationValidationChain.ts) | Sequence Diagram #5 & Activity Diagram #7 | **6-Stage Registration Validation Pipeline**: Traverses sequential handlers (Auth, Status, Visibility, Eligibility, Deadline, Capacity, Duplicate) with early abortion and human-friendly reasons. |
+| **Mediator** | Behavioral | [`backend/src/patterns/mediator/RegistrationMediator.ts`](file:///backend/src/patterns/mediator/RegistrationMediator.ts) | Sequence Diagram #13 | **Decoupled Registration Workflow**: `EventCoordinator` coordinates Seat Check, Fee Payment, Confirmation Email, and Live Dashboard Refresh without any direct coupling between modules. |
+| **Template Method** | Behavioral | [`backend/src/patterns/template/EventWorkflow.ts`](file:///backend/src/patterns/template/EventWorkflow.ts) | Sequence Diagram #14 | **Event Lifecycle Automation**: `EventWorkflow.run()` skeleton sequence (`validate` → `setupRegistration` → `publish` → `executeEvent` → `close` → `report`) customized by `HackathonWorkflow` and `CulturalFestWorkflow`. |
+| **Strategy** | Behavioral | [`backend/src/patterns/strategy/FeeStrategy.ts`](file:///backend/src/patterns/strategy/FeeStrategy.ts) | Sequence Diagram #15 | **Dynamic Pricing & Fee Calculation**: `FeeCalculatorContext` selects runtime strategies: `FreeStrategy`, `EarlyBirdStrategy`, `InterCollegeFeeStrategy`, `GroupDiscountStrategy`, and `StudentIdDiscountStrategy`. |
+| **Memento** | Behavioral | [`backend/src/patterns/memento/EventMemento.ts`](file:///backend/src/patterns/memento/EventMemento.ts)<br/>[`frontend/src/components/EventVersionModal.tsx`](file:///frontend/src/components/EventVersionModal.tsx) | Sequence Diagram #16 | **"Undo Last Edit" & Version History**: Restores previous event states using immutable `EventMemento` snapshots managed by `EventHistoryCaretaker`, specifically protecting against accidental deadline shifts. |
+| **Observer** | Behavioral | [`backend/src/patterns/observer/EventSubject.ts`](file:///backend/src/patterns/observer/EventSubject.ts) | Sequence Diagram #6 | **Decoupled Notification Broadcast**: Broadcasts event updates and automated waitlist promotions to `RegisteredStudentsObserver`, `OrganizerObserver`, and `AdminAuditObserver`. |
+| **MVC** | Architectural | `backend/src/` (Models & Controllers)<br/>`frontend/src/` (Views & Components) | MVC Diagram #17 | **Model-View-Controller App Architecture**: Clean separation where Views never touch raw SQL, Models never touch the DOM, and Express Controllers orchestrate REST transactions. |
+
+---
+
+### Where Each Pattern Fits (Deep Dive)
+
+#### 1. Builder + Prototype: Event Creation (Organizer Side)
+- **"Create Event" Wizard (`EventBuilder`)**: Organizers create events using a multi-step guided wizard. Required fields are `title`, `date`, and `college`. Optional fields include `prizePool`, `minTeamSize`/`maxTeamSize`, `speakers`, `sponsors`, and `isInterCollege`. Chained steps assemble the event and validate all constraints in `build()` before persistence.
+- **"Duplicate Event" Button (`EventPrototype`)**: Colleges rerun the same annual symposiums and fests. The clone button produces a clean deep-copy of the event where array properties like `speakers` and `sponsors` are fully cloned to prevent memory reference leaks. The organizer quickly sets the new year's date and venue while draft status resets to `DRAFT`.
+
+#### 2. Mediator + Template Method: Registration and Event Lifecycle
+- **Registration Flow (`EventCoordinator`)**: When a student clicks register, the `EventCoordinator` mediator triggers four isolated colleagues in order:
+  1. `SeatColleague`: Verifies capacity and allocates seat or waitlist spot.
+  2. `PaymentColleague`: Deducts/clears the calculated registration fee.
+  3. `NotificationColleague`: Sends official confirmation email with ticket details.
+  4. `DashboardColleague`: Increments the organizer's live attendee dashboard roster.
+  *None of these colleagues communicate directly; all requests flow through the mediator.*
+- **Event Publishing Workflow (`EventWorkflow`)**: The abstract `EventWorkflow.run()` template method enforces the invariant lifecycle: `validate()` → `setupRegistration()` → `publish()` → `executeEvent()` → `close()` → `generateReport()`. Specialized subclasses override only the steps that differ:
+  - `HackathonWorkflow`: Enforces GitHub repository links, team formations, and judge rubric setup.
+  - `CulturalFestWorkflow`: Enforces solo/group performance slots, stage acoustics, and ticketing gates.
+
+#### 3. Strategy + Memento: Fees and Edit History
+- **Fee Calculation (`PricingStrategy`)**: Rather than nested conditional statements, the fee engine uses interchangeable pricing strategies resolved at runtime based on event settings:
+  - `FreeStrategy`: Zero-cost entry for open campus workshops.
+  - `EarlyBirdStrategy`: 25% discount for early registrants.
+  - `InterCollegeFeeStrategy`: Flat institutional surcharge for external guests.
+  - `GroupDiscountStrategy`: 20% discount for hackathon teams of 3 or more.
+  - `StudentIdDiscountStrategy`: 15% discount for verified student cardholders.
+- **Undo for Event Edits (`EventMemento`)**: Organizers frequently tweak schedules, venue locations, and registration cutoffs. Accidental deadline shifts can lock students out prematurely. Prior to committing any update, an immutable `EventMemento` snapshot is pushed onto the `EventHistoryCaretaker` stack and saved to SQLite `EVENT_MEMENTO`. An **"Undo"** button pops the last snapshot and immediately restores the prior state.
+
+#### 4. MVC Architecture & Pattern Explorer
+- **Strict Separation of Concerns**:
+  - `models/`: Database schemas, DAOs (`EventRepository`, `MementoRepository`), and `DatabaseManager`.
+  - `views/`: React components and pages (`EventCard`, `OrganizerDashboard`, `StudentDashboard`).
+  - `controllers/`: Express handlers (`EventController`, `RegistrationController`, `AuthController`) and frontend `api.ts` service client.
+- **Pattern Demo Explorer**: The sidebar includes the Design Pattern Explorer with a live interactive sandbox for each pattern (`BuilderDemo`, `PrototypeDemo`, `MediatorDemo`, `TemplateMethodDemo`, `StrategyDemo`, `MementoDemo`, `MVCDemo`), allowing users to run live simulations and view data flow in real time.
 
 ---
 
@@ -186,7 +232,7 @@ The `EventAccessProxy` intercepts all data-layer repository queries:
 
 ## 🧪 Automated Test Suite
 
-EventBridge includes 5 modular, independent test suites in `backend/tests/`:
+EventBridge includes 6 modular, independent test suites in `backend/tests/`:
 
 ```text
 backend/tests/
@@ -194,7 +240,8 @@ backend/tests/
 ├── lifecycle.test.ts      # Draft -> Submitted -> Approved/Rejected -> Published flow
 ├── authorization.test.ts  # Proxy isolation & RBAC enforcement
 ├── registration.test.ts   # Validation chain, duplicate prevention, deadline checks
-└── waitlist.test.ts       # Capacity limits, waitlist queuing, and cancellation auto-promotion
+├── waitlist.test.ts       # Capacity limits, waitlist queuing, and cancellation auto-promotion
+└── newPatterns.test.ts    # Builder, Prototype, Mediator, Template, Strategy, Memento verification
 ```
 
 ### Running Tests Locally:
@@ -228,8 +275,17 @@ npm test
 🧪 Running Suite: Waitlist Management & Auto-Promotion Tests...
 ✅ Waitlist Management & Auto-Promotion Tests Passed!
 
+🧪 Running Suite: Advanced Gang of Four Patterns (Builder, Prototype, Mediator, Template, Strategy, Memento)...
+✅ Builder Pattern: Required fields validated, optional fields assembled, build() enforced
+✅ Prototype Pattern: Deep cloning created isolated copy, array mutation protected
+✅ Mediator Pattern: EventCoordinator successfully coordinated 4 colleagues
+✅ Template Method: HackathonWorkflow and CulturalFestWorkflow executed skeleton algorithms
+✅ Strategy Pattern: FeeCalculatorContext dynamically evaluated all 5 pricing strategies
+✅ Memento Pattern: State snapshot captured, pushed, popped, and restored accurately
+✅ Advanced Gang of Four Patterns Passed!
+
 ====================================================
-🎉 ALL 5 TEST SUITES PASSED SUCCESSFULLY (100% GREEN)
+🎉 ALL 6 TEST SUITES PASSED SUCCESSFULLY (100% GREEN)
 ====================================================
 ```
 

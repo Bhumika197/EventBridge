@@ -1,6 +1,8 @@
 import { EventAccessProxy } from '../patterns/proxy/EventAccessProxy';
 import { EventFactoryProvider, EventCreationData } from '../patterns/factory/EventFactory';
 import { EventSubject, RegisteredStudentsObserver, OrganizerObserver, AdminAuditObserver } from '../patterns/observer/EventSubject';
+import { EventPrototype } from '../patterns/prototype/EventPrototype';
+import { EventOriginator, EventHistoryCaretaker } from '../patterns/memento/EventMemento';
 import { Event, User, EventStatus, EventFilterQuery, PaginatedResult } from '../types';
 import { logger } from '../utils/logger';
 
@@ -151,7 +153,7 @@ export class EventService {
     return this.attachDerivedFields(updated)!;
   }
 
-  public async updateEvent(eventId: number, updates: Partial<Event>, user: User): Promise<Event> {
+  public async updateEvent(eventId: number, updates: Partial<Event>, user: User, changeDescription?: string): Promise<Event> {
     const existing = await this.eventProxy.findById(eventId);
     if (!existing) {
       throw new Error('Event not found.');
@@ -161,6 +163,16 @@ export class EventService {
       throw new Error('Unauthorized: You can only edit your own events.');
     }
 
+    // --- MEMENTO PATTERN: Save state snapshot before mutating ---
+    try {
+      const originator = new EventOriginator(existing);
+      const caretaker = new EventHistoryCaretaker(eventId);
+      const desc = changeDescription || `Updated fields: ${Object.keys(updates).join(', ')}`;
+      await caretaker.pushSnapshot(originator, desc);
+    } catch (err) {
+      logger.warn(`Failed to save memento snapshot for event #${eventId}: ${err}`);
+    }
+
     const updated = await this.eventProxy.update(eventId, updates);
     if (!updated) throw new Error('Failed to update event.');
 
@@ -168,6 +180,75 @@ export class EventService {
     await this.eventSubject.notifyObservers(updated, 'UPDATED', changesText);
 
     return this.attachDerivedFields(updated)!;
+  }
+
+  /**
+   * PROTOTYPE PATTERN: Clones an existing event, deep-copying arrays (speakers, sponsors)
+   * and resetting operational state.
+   */
+  public async cloneEvent(
+    eventId: number,
+    user: User,
+    overrides?: { date?: string; venue?: string; title?: string; registrationDeadline?: string }
+  ): Promise<Event> {
+    const existing = await this.eventProxy.findById(eventId);
+    if (!existing) {
+      throw new Error('Event not found to clone.');
+    }
+
+    if (user.role !== 'PLATFORM_ADMIN' && user.role !== 'EVENT_ORGANIZER') {
+      throw new Error('Unauthorized: Only event organizers or administrators can duplicate events.');
+    }
+
+    const prototype = new EventPrototype(existing);
+    const cloned = prototype.clone(overrides);
+    const creationData = cloned.toEventCreationData();
+    // Assign creating organizer
+    creationData.organizerId = user.userId;
+    creationData.organizerName = user.name;
+    creationData.collegeId = user.collegeId;
+
+    const createdEvent = await this.createEvent(creationData, user);
+    logger.info(`Prototype Pattern: Duplicated Event #${eventId} -> New Event #${createdEvent.eventId} ("${createdEvent.title}")`);
+    return createdEvent;
+  }
+
+  /**
+   * MEMENTO PATTERN: Undoes the most recent edit to an event by restoring
+   * the previous state from the history stack.
+   */
+  public async undoEventEdit(eventId: number, user: User): Promise<Event> {
+    const existing = await this.eventProxy.findById(eventId);
+    if (!existing) {
+      throw new Error('Event not found.');
+    }
+
+    if (user.role !== 'PLATFORM_ADMIN' && existing.organizerId !== user.userId) {
+      throw new Error('Unauthorized: You can only undo edits on your own events.');
+    }
+
+    const originator = new EventOriginator(existing);
+    const caretaker = new EventHistoryCaretaker(eventId);
+    const restoredState = await caretaker.undo(originator);
+
+    if (!restoredState) {
+      throw new Error('No previous snapshot found in history to undo.');
+    }
+
+    const updated = await this.eventProxy.update(eventId, restoredState);
+    if (!updated) throw new Error('Failed to restore event state.');
+
+    logger.info(`Memento Pattern: Restored Event #${eventId} to previous snapshot state.`);
+    await this.eventSubject.notifyObservers(updated, 'UPDATED', 'Reverted to previous version snapshot via Undo.');
+    return this.attachDerivedFields(updated)!;
+  }
+
+  /**
+   * Retrieves version history snapshots for an event
+   */
+  public async getEventHistory(eventId: number): Promise<{ id: number; description: string; timestamp: string }[]> {
+    const caretaker = new EventHistoryCaretaker(eventId);
+    return caretaker.getHistoryRecords();
   }
 
   public async cancelEvent(eventId: number, reason: string, user: User): Promise<void> {

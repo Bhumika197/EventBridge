@@ -289,7 +289,20 @@ export class DatabaseManager {
         rejectionReason TEXT,
         reviewedBy INTEGER,
         reviewedAt DATETIME,
+        prizePool REAL DEFAULT 0,
+        minTeamSize INTEGER DEFAULT 1,
+        maxTeamSize INTEGER DEFAULT 1,
+        speakers TEXT DEFAULT '[]',
+        sponsors TEXT DEFAULT '[]',
         contactInformation TEXT NOT NULL,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS EVENT_MEMENTO (
+        mementoId INTEGER PRIMARY KEY AUTOINCREMENT,
+        eventId INTEGER NOT NULL,
+        stateJson TEXT NOT NULL,
+        description TEXT NOT NULL,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -333,7 +346,12 @@ export class DatabaseManager {
       'ALTER TABLE EVENT ADD COLUMN registrationStartTime TEXT',
       'ALTER TABLE EVENT ADD COLUMN rejectionReason TEXT',
       'ALTER TABLE EVENT ADD COLUMN reviewedBy INTEGER',
-      'ALTER TABLE EVENT ADD COLUMN reviewedAt DATETIME'
+      'ALTER TABLE EVENT ADD COLUMN reviewedAt DATETIME',
+      'ALTER TABLE EVENT ADD COLUMN prizePool REAL DEFAULT 0',
+      'ALTER TABLE EVENT ADD COLUMN minTeamSize INTEGER DEFAULT 1',
+      'ALTER TABLE EVENT ADD COLUMN maxTeamSize INTEGER DEFAULT 1',
+      'ALTER TABLE EVENT ADD COLUMN speakers TEXT DEFAULT "[]"',
+      'ALTER TABLE EVENT ADD COLUMN sponsors TEXT DEFAULT "[]"'
     ];
 
     for (const mig of migrations) {

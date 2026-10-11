@@ -97,6 +97,15 @@ export const api = {
   getAllUsers: () => fetchApi('/admin/users'),
   createCollege: (data: any) => fetchApi('/admin/colleges', { method: 'POST', body: JSON.stringify(data) }),
 
+  // Pattern-Powered Features
+  cloneEvent: (id: number, overrides?: any) => fetchApi(`/events/${id}/clone`, { method: 'POST', body: JSON.stringify(overrides || {}) }),
+  undoEventEdit: (id: number) => fetchApi(`/events/${id}/memento/undo`, { method: 'POST' }),
+  getEventHistory: (id: number) => fetchApi(`/events/${id}/memento/history`),
+  validateBuilder: (data: any) => fetchApi('/events/builder/validate', { method: 'POST', body: JSON.stringify(data) }),
+  runWorkflow: (workflowType: string, event?: any) => fetchApi('/events/workflow/run', { method: 'POST', body: JSON.stringify({ workflowType, event }) }),
+  simulateMediator: (data?: any) => fetchApi('/events/mediator/simulate', { method: 'POST', body: JSON.stringify(data || {}) }),
+  calculateFee: (strategy: string, context?: any) => fetchApi('/events/pricing/calculate', { method: 'POST', body: JSON.stringify({ strategy, context }) }),
+
   // Patterns Info
   getPatterns: () => fetchApi('/patterns')
 };

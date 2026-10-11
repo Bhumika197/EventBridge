@@ -363,3 +363,285 @@ graph LR
     Browser -- Serves React Web App --> Vite
     Express -- Synchronous Read/Write --> DBFile
 ```
+
+---
+
+## 11. Builder Pattern Diagram (EventBuilder)
+
+```mermaid
+classDiagram
+    class EventBuilder {
+        -data: Partial<EventCreationData>
+        +setTitle(title: string) EventBuilder
+        +setDate(date: string) EventBuilder
+        +setCollege(collegeId: number) EventBuilder
+        +setSchedule(start: string, end: string) EventBuilder
+        +setVenue(venue: string) EventBuilder
+        +setCapacity(capacity: number) EventBuilder
+        +setInterCollege(isInter: boolean) EventBuilder
+        +setPrizePool(amount: number) EventBuilder
+        +setTeamSize(min: number, max: number) EventBuilder
+        +addSpeaker(speaker: string) EventBuilder
+        +addSponsor(sponsor: string) EventBuilder
+        +validate() EventBuilderValidationResult
+        +build() EventCreationData
+    }
+
+    class EventBuilderValidationResult {
+        +isValid: boolean
+        +errors: string[]
+    }
+
+    class EventCreationData {
+        +title: string
+        +date: string
+        +collegeId: number
+        +venue: string
+        +capacity: number
+        +prizePool: number
+        +speakers: string[]
+        +sponsors: string[]
+    }
+
+    EventBuilder --> EventBuilderValidationResult : produces
+    EventBuilder --> EventCreationData : builds
+```
+
+---
+
+## 12. Prototype Pattern Diagram (EventPrototype)
+
+```mermaid
+classDiagram
+    class Prototype~T~ {
+        <<interface>>
+        +clone(overrides) T
+    }
+
+    class EventPrototype {
+        +title: string
+        +date: string
+        +venue: string
+        +status: string
+        +currentRegistrations: number
+        +speakers: string[]
+        +sponsors: string[]
+        +clone(overrides) EventPrototype
+    }
+
+    Prototype <|.. EventPrototype : implements
+```
+
+---
+
+## 13. Mediator Pattern Diagram (EventCoordinator)
+
+```mermaid
+classDiagram
+    class Mediator {
+        <<interface>>
+        +notify(sender: Colleague, event: string, data: any) Promise
+    }
+
+    class Colleague {
+        <<abstract>>
+        #mediator: Mediator
+        +setMediator(mediator: Mediator)
+    }
+
+    class EventCoordinator {
+        -seatColleague: SeatColleague
+        -paymentColleague: PaymentColleague
+        -notificationColleague: NotificationColleague
+        -dashboardColleague: DashboardColleague
+        +coordinateRegistration(student, event) Promise
+        +notify(sender, event, data) Promise
+    }
+
+    class SeatColleague {
+        +checkAndReserveSeat(event) Promise
+    }
+
+    class PaymentColleague {
+        +processPayment(amount, student) Promise
+    }
+
+    class NotificationColleague {
+        +sendConfirmation(student, event, waitlisted) Promise
+    }
+
+    class DashboardColleague {
+        +updateOrganizerDashboard(organizerId, eventId, status) Promise
+    }
+
+    Mediator <|.. EventCoordinator
+    Colleague <|-- SeatColleague
+    Colleague <|-- PaymentColleague
+    Colleague <|-- NotificationColleague
+    Colleague <|-- DashboardColleague
+
+    EventCoordinator *-- SeatColleague
+    EventCoordinator *-- PaymentColleague
+    EventCoordinator *-- NotificationColleague
+    EventCoordinator *-- DashboardColleague
+```
+
+---
+
+## 14. Template Method Pattern Diagram (EventWorkflow)
+
+```mermaid
+classDiagram
+    class EventWorkflow {
+        <<abstract>>
+        +run(event: Partial~Event~) Promise~WorkflowReport~
+        #validate(event)* Promise
+        #setupRegistration(event)* Promise
+        #publish(event) Promise
+        #executeEvent(event)* Promise
+        #close(event) Promise
+        #generateReport(event)* Promise
+    }
+
+    class HackathonWorkflow {
+        #validate(event) Promise
+        #setupRegistration(event) Promise
+        #executeEvent(event) Promise
+        #generateReport(event) Promise
+    }
+
+    class CulturalFestWorkflow {
+        #validate(event) Promise
+        #setupRegistration(event) Promise
+        #executeEvent(event) Promise
+        #generateReport(event) Promise
+    }
+
+    EventWorkflow <|-- HackathonWorkflow
+    EventWorkflow <|-- CulturalFestWorkflow
+```
+
+---
+
+## 15. Strategy Pattern Diagram (PricingStrategy)
+
+```mermaid
+classDiagram
+    class PricingStrategy {
+        <<interface>>
+        +calculateFee(context: FeeCalculationContext) FeeBreakdown
+    }
+
+    class FeeCalculatorContext {
+        -strategy: PricingStrategy
+        +setStrategy(strategy: PricingStrategy)
+        +calculate(context: FeeCalculationContext) FeeBreakdown
+    }
+
+    class FreeStrategy {
+        +calculateFee(ctx) FeeBreakdown
+    }
+
+    class EarlyBirdStrategy {
+        -discountPercent: number
+        +calculateFee(ctx) FeeBreakdown
+    }
+
+    class InterCollegeFeeStrategy {
+        -surchargeAmount: number
+        +calculateFee(ctx) FeeBreakdown
+    }
+
+    class GroupDiscountStrategy {
+        -discountPercent: number
+        +calculateFee(ctx) FeeBreakdown
+    }
+
+    class StudentIdDiscountStrategy {
+        -discountPercent: number
+        +calculateFee(ctx) FeeBreakdown
+    }
+
+    PricingStrategy <|.. FreeStrategy
+    PricingStrategy <|.. EarlyBirdStrategy
+    PricingStrategy <|.. InterCollegeFeeStrategy
+    PricingStrategy <|.. GroupDiscountStrategy
+    PricingStrategy <|.. StudentIdDiscountStrategy
+
+    FeeCalculatorContext o-- PricingStrategy
+```
+
+---
+
+## 16. Memento Pattern Diagram (EventMemento)
+
+```mermaid
+classDiagram
+    class EventMemento {
+        -state: EventState
+        -timestamp: string
+        -note: string
+        +getState() EventState
+        +getTimestamp() string
+        +getNote() string
+    }
+
+    class EventOriginator {
+        -state: EventState
+        +saveToMemento(note: string) EventMemento
+        +restoreFromMemento(memento: EventMemento) EventState
+        +getState() EventState
+        +setState(state: EventState)
+    }
+
+    class EventHistoryCaretaker {
+        -eventId: number
+        -mementos: EventMemento[]
+        +pushSnapshot(originator, note) Promise
+        +undo(originator) Promise~EventState~
+        +getHistory() Promise~EventMemento[]~
+    }
+
+    EventOriginator ..> EventMemento : creates & restores
+    EventHistoryCaretaker o-- EventMemento : stores snapshots
+```
+
+---
+
+## 17. Model-View-Controller (MVC) Full-Stack Diagram
+
+```mermaid
+graph TD
+    subgraph View Layer ["View Layer (React Frontend)"]
+        V1["EventCard"]
+        V2["OrganizerDashboard"]
+        V3["CreateEventWizardModal"]
+        V4["DuplicateEventModal"]
+        V5["EventVersionModal"]
+        V6["DesignPatternExplorer"]
+    end
+
+    subgraph Controller Layer ["Controller Layer (Express & api.ts)"]
+        C1["EventController"]
+        C2["RegistrationController"]
+        C3["AuthController"]
+        C4["AdminController"]
+        C5["frontend/src/services/api.ts Client"]
+    end
+
+    subgraph Model Layer ["Model Layer (Repositories, DB & Services)"]
+        M1["EventRepository"]
+        M2["RegistrationRepository"]
+        M3["MementoRepository"]
+        M4["UserRepository"]
+        M5["DatabaseManager (SQLite WASM)"]
+        M6["Domain Entities (Event, User, Registration)"]
+    end
+
+    View Layer -- User Interactions & HTTP Fetch --> Controller Layer
+    Controller Layer -- Queries & Transaction Commands --> Model Layer
+    Model Layer -- Typed Domain Entities & Data Sets --> Controller Layer
+    Controller Layer -- JSON HTTP REST Responses --> View Layer
+    View Layer -- DOM Virtual Tree Rerenders --> View Layer
+```
+

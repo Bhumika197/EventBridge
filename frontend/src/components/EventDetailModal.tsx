@@ -224,6 +224,56 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
           </div>
         </div>
 
+        {/* Prize Pool & Team Sizing (Builder/Prototype pattern attributes) */}
+        {(Boolean(event.prizePool && event.prizePool > 0) || Boolean(event.minTeamSize)) && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            {event.prizePool && event.prizePool > 0 && (
+              <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '6px', padding: '0.75rem' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#92400e', textTransform: 'uppercase' }}>Total Prize Pool</span>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#b45309', marginTop: '0.2rem' }}>
+                  🏆 ₹{event.prizePool.toLocaleString()}
+                </div>
+              </div>
+            )}
+            {event.minTeamSize && (
+              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', padding: '0.75rem' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase' }}>Team Participation</span>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1d4ed8', marginTop: '0.2rem' }}>
+                  👥 {event.minTeamSize === event.maxTeamSize ? `${event.minTeamSize} member` : `${event.minTeamSize} - ${event.maxTeamSize} members`}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Speakers List */}
+        {event.speakers && event.speakers.length > 0 && (
+          <div style={{ marginBottom: '1.25rem' }}>
+            <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Distinguished Speakers & Guests</h4>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+              {event.speakers.map((spk, idx) => (
+                <span key={idx} style={{ background: '#e0f2fe', color: '#0369a1', fontSize: '0.82rem', padding: '0.3rem 0.65rem', borderRadius: '6px', border: '1px solid #bae6fd', fontWeight: 600 }}>
+                  🎙️ {spk}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Sponsors List */}
+        {event.sponsors && event.sponsors.length > 0 && (
+          <div style={{ marginBottom: '1.25rem' }}>
+            <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Official Sponsors & Partners</h4>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+              {event.sponsors.map((sps, idx) => (
+                <span key={idx} style={{ background: '#f8fafc', color: '#334155', fontSize: '0.8rem', padding: '0.25rem 0.55rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 600 }}>
+                  ⚡ {sps}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
           <div>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Registration Fee:</span>

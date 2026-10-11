@@ -2,13 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { CreateEventModal } from '../components/CreateEventModal';
-import { Calendar, Plus, Users, Megaphone, AlertCircle, Edit, Ban, CheckCircle, Send, AlertTriangle, Clock } from 'lucide-react';
+import { CreateEventWizardModal } from '../components/CreateEventWizardModal';
+import { DuplicateEventModal } from '../components/DuplicateEventModal';
+import { EventVersionModal } from '../components/EventVersionModal';
+import { Calendar, Plus, Users, Megaphone, AlertCircle, Edit, Ban, CheckCircle, Send, AlertTriangle, Clock, Copy, History, Sparkles } from 'lucide-react';
 
 export const OrganizerDashboard: React.FC = () => {
   const { user } = useAuth();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showWizardModal, setShowWizardModal] = useState(false);
+  const [duplicateEvent, setDuplicateEvent] = useState<any | null>(null);
+  const [editVersionEvent, setEditVersionEvent] = useState<any | null>(null);
 
   // Selected event for participant view
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
@@ -116,10 +122,20 @@ export const OrganizerDashboard: React.FC = () => {
           </p>
         </div>
 
-        <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
-          <Plus size={18} />
-          Create New Event
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            className="btn-secondary"
+            onClick={() => setShowWizardModal(true)}
+            style={{ borderColor: '#60a5fa', color: '#93c5fd' }}
+          >
+            <Sparkles size={16} />
+            Create Event Wizard (Builder)
+          </button>
+          <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+            <Plus size={18} />
+            Create New Event
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -228,6 +244,28 @@ export const OrganizerDashboard: React.FC = () => {
                         >
                           <Users size={14} />
                           Roster
+                        </button>
+
+                        {/* Prototype Pattern: Clone Event */}
+                        <button
+                          className="btn-secondary"
+                          style={{ padding: '0.35rem 0.6rem', fontSize: '0.78rem', color: '#38bdf8', borderColor: 'rgba(56,189,248,0.3)' }}
+                          title="Duplicate Event via Prototype Pattern (Deep Copy)"
+                          onClick={() => setDuplicateEvent(event)}
+                        >
+                          <Copy size={13} />
+                          Clone
+                        </button>
+
+                        {/* Memento Pattern: Edit & Undo History */}
+                        <button
+                          className="btn-secondary"
+                          style={{ padding: '0.35rem 0.6rem', fontSize: '0.78rem', color: '#f59e0b', borderColor: 'rgba(245,158,11,0.3)' }}
+                          title="Edit details with Memento Snapshot & Undo Safeguard"
+                          onClick={() => setEditVersionEvent(event)}
+                        >
+                          <History size={13} />
+                          Edit / Undo
                         </button>
 
                         {event.status === 'PUBLISHED' && (
@@ -343,10 +381,36 @@ export const OrganizerDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Create Event Modal */}
+      {/* Create Event Modal (Standard) */}
       {showCreateModal && (
         <CreateEventModal
           onClose={() => setShowCreateModal(false)}
+          onSuccess={loadOrganizerEvents}
+        />
+      )}
+
+      {/* Create Event Wizard Modal (Builder Pattern) */}
+      {showWizardModal && (
+        <CreateEventWizardModal
+          onClose={() => setShowWizardModal(false)}
+          onSuccess={loadOrganizerEvents}
+        />
+      )}
+
+      {/* Duplicate Event Modal (Prototype Pattern) */}
+      {duplicateEvent && (
+        <DuplicateEventModal
+          event={duplicateEvent}
+          onClose={() => setDuplicateEvent(null)}
+          onSuccess={loadOrganizerEvents}
+        />
+      )}
+
+      {/* Edit & Version History Modal (Memento Pattern) */}
+      {editVersionEvent && (
+        <EventVersionModal
+          event={editVersionEvent}
+          onClose={() => setEditVersionEvent(null)}
           onSuccess={loadOrganizerEvents}
         />
       )}
