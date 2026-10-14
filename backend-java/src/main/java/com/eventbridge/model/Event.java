@@ -21,6 +21,12 @@ public class Event {
     private String eligibilityDescription;
     private String status; // REGISTRATION_OPEN, CANCELLED, etc.
     private String contactInformation;
+    private String prizePool;
+    private int minTeamSize;
+    private int maxTeamSize;
+    private String speakers;
+    private String sponsors;
+    private String rejectionReason;
     private String createdAt;
 
     public Event() {}
@@ -87,4 +93,22 @@ public class Event {
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+
+    public String getPrizePool() { return prizePool != null ? prizePool : ""; }
+    public void setPrizePool(String prizePool) { this.prizePool = prizePool; }
+
+    public int getMinTeamSize() { return minTeamSize; }
+    public void setMinTeamSize(int minTeamSize) { this.minTeamSize = minTeamSize; }
+
+    public int getMaxTeamSize() { return maxTeamSize; }
+    public void setMaxTeamSize(int maxTeamSize) { this.maxTeamSize = maxTeamSize; }
+
+    public String getSpeakers() { return speakers; }
+    public void setSpeakers(String speakers) { this.speakers = speakers; }
+
+    public String getSponsors() { return sponsors; }
+    public void setSponsors(String sponsors) { this.sponsors = sponsors; }
+
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
 }

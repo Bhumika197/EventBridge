@@ -63,4 +63,16 @@ public class NotificationRepository {
         }
         return list;
     }
+
+    public boolean markAsRead(int notificationId) {
+        String sql = "UPDATE NOTIFICATION SET readStatus = 1 WHERE notificationId = ?";
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, notificationId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Error marking notification read: " + e.getMessage());
+            return false;
+        }
+    }
 }

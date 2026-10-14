@@ -33,6 +33,30 @@ public class CollegeRepository {
         return list;
     }
 
+    public College findById(int collegeId) {
+        String sql = "SELECT * FROM COLLEGE WHERE collegeId = ?";
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, collegeId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    College c = new College(
+                        rs.getInt("collegeId"),
+                        rs.getString("name"),
+                        rs.getString("code"),
+                        rs.getString("location"),
+                        rs.getString("emailDomain")
+                    );
+                    c.setStatus(rs.getString("status"));
+                    return c;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error finding college by ID: " + e.getMessage());
+        }
+        return null;
+    }
+
     public College create(String name, String code, String location, String emailDomain) {
         String sql = "INSERT INTO COLLEGE (name, code, location, emailDomain) VALUES (?, ?, ?, ?)";
         try (Connection conn = dbManager.getConnection();
