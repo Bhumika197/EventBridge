@@ -297,26 +297,23 @@ npm test
 - **Node.js**: v18.0.0 or higher
 - **npm**: v9.0.0 or higher
 
-### 1. Clone the Repository
+### 1. Clone & Install
 ```bash
 git clone https://github.com/Bhumika197/EventBridge.git
 cd EventBridge
+npm run install:all    # Installs root, backend, and frontend dependencies
 ```
 
-### 2. Backend Setup
+### 2. Launch (One Command)
 ```bash
-cd backend
-npm install
-npm run seed       # Seeds 6 colleges, 100 users, and sample events
-npm run dev        # Starts backend server on http://localhost:5000
+npm start              # Or 'npm run dev' — starts backend (:5000) & frontend (:3000) together
 ```
 
-### 3. Frontend Setup
-```bash
-cd ../frontend
-npm install
-npm run dev        # Starts Vite dev server on http://localhost:5173
-```
+> **Optional Individual Commands:**
+> - `npm run dev:backend` — Run only backend server (`http://localhost:5000`)
+> - `npm run dev:frontend` — Run only Vite frontend (`http://localhost:3000`)
+> - `npm run seed` — Re-seed the database
+> - `npm test` — Run backend design pattern and registration test suite
 
 ---
 
