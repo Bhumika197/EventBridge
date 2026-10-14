@@ -1,4 +1,4 @@
-# EventBridge — University Event Discovery & Registration Platform
+# EventBridge
 
 EventBridge is a full-stack web application designed to solve the fragmented event discovery and registration process across collegiate campuses. It provides institutional isolation, granular access control, registration validation, and automated FIFO waitlist management.
 
