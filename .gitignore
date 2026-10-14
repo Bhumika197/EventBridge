@@ -7,8 +7,6 @@ yarn-error.log*
 # Build Outputs
 dist/
 build/
-backend-java/bin/
-*.class
 *.tsbuildinfo
 
 # Database & SQLite files

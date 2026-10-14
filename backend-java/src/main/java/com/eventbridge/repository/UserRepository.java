@@ -11,7 +11,7 @@ public class UserRepository {
     private final DatabaseManager dbManager = DatabaseManager.getInstance();
 
     public User findByUsername(String username) {
-        String sql = "SELECT u.*, c.name as collegeName FROM USER u LEFT JOIN COLLEGE c ON u.collegeId = c.collegeId WHERE u.username = ?";
+        String sql = "SELECT u.*, c.name as collegeName FROM USER u JOIN COLLEGE c ON u.collegeId = c.collegeId WHERE u.username = ?";
         try (Connection conn = dbManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username);
@@ -27,7 +27,7 @@ public class UserRepository {
     }
 
     public User findByEmail(String email) {
-        String sql = "SELECT u.*, c.name as collegeName FROM USER u LEFT JOIN COLLEGE c ON u.collegeId = c.collegeId WHERE u.email = ?";
+        String sql = "SELECT u.*, c.name as collegeName FROM USER u JOIN COLLEGE c ON u.collegeId = c.collegeId WHERE u.email = ?";
         try (Connection conn = dbManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, email);
@@ -62,50 +62,6 @@ public class UserRepository {
             System.err.println("Error creating user: " + e.getMessage());
         }
         return null;
-    }
-
-    public User findById(int userId) {
-        String sql = "SELECT u.*, c.name as collegeName FROM USER u LEFT JOIN COLLEGE c ON u.collegeId = c.collegeId WHERE u.userId = ?";
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, userId);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapUser(rs);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Error finding user by ID: " + e.getMessage());
-        }
-        return null;
-    }
-
-    public List<User> findAll() {
-        List<User> list = new ArrayList<>();
-        String sql = "SELECT u.*, c.name as collegeName FROM USER u LEFT JOIN COLLEGE c ON u.collegeId = c.collegeId ORDER BY u.userId ASC";
-        try (Connection conn = dbManager.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                list.add(mapUser(rs));
-            }
-        } catch (SQLException e) {
-            System.err.println("Error fetching all users: " + e.getMessage());
-        }
-        return list;
-    }
-
-    public boolean deleteById(int userId) {
-        String sql = "DELETE FROM USER WHERE userId = ?";
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, userId);
-            int rows = pstmt.executeUpdate();
-            return rows > 0;
-        } catch (SQLException e) {
-            System.err.println("Error deleting user: " + e.getMessage());
-            return false;
-        }
     }
 
     public void updatePassword(int userId, String passwordHash) {

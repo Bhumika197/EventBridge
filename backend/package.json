@@ -4,12 +4,15 @@
   "description": "EventBridge Backend with Design Patterns and SQLite",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "java -cp \"../backend-java/bin;../backend-java/*\" com.eventbridge.server.EventBridgeServer",
-    "start": "java -cp \"../backend-java/bin;../backend-java/*\" com.eventbridge.server.EventBridgeServer",
-    "build": "java -version",
-    "test": "node tests/runAllTests.js"
+    "dev": "ts-node src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "seed": "ts-node src/seed/runSeed.ts",
+    "test": "ts-node tests/runAllTests.ts"
   },
   "dependencies": {
+    "@types/nodemailer": "^8.0.1",
+    "@types/sql.js": "^1.4.11",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -18,5 +21,14 @@
     "nodemailer": "^9.0.5",
     "sql.js": "^1.14.2"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.12.7",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.4.5"
+  }
 }
