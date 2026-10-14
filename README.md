@@ -6,7 +6,7 @@ EventBridge is a full-stack web application designed to solve the fragmented eve
 
 ## Live Deployment & Demo
 
-🚀 **Production Web App:** [https://event-bridge-beta.vercel.app/](https://event-bridge-beta.vercel.app/)
+**Production Web App:** [https://event-bridge-beta.vercel.app/](https://event-bridge-beta.vercel.app/)
 
 The application is deployed on **Vercel** with full client-side React routing and serverless backend API endpoints powered by an in-memory/disk-synchronized SQLite WASM database (`sql.js`).
 
@@ -27,7 +27,7 @@ All demo accounts share the password: `password123` (Admin: `admin123`).
 
 ---
 
-## 🎯 The Problem Solved
+## The Problem Solved
 
 In collegiate ecosystems, campus event discovery and attendance management suffer from three core issues:
 1. **Scattered Information**: Announcements are scattered across WhatsApp groups, email blasts, and physical posters, causing low visibility and missed registration deadlines.
@@ -38,7 +38,7 @@ In collegiate ecosystems, campus event discovery and attendance management suffe
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```text
                     ┌─────────────────────────┐
@@ -155,7 +155,7 @@ The `EventAccessProxy` intercepts all data-layer repository queries:
 
 ---
 
-## 🏛️ Design Patterns Architecture & Feature Mapping
+##  Design Patterns Architecture & Feature Mapping
 
 EventBridge is engineered around classic Gang of Four (GoF) object-oriented design patterns and the Model-View-Controller (MVC) architecture. Every pattern directly powers a tangible, visible platform feature:
 
@@ -176,44 +176,7 @@ EventBridge is engineered around classic Gang of Four (GoF) object-oriented desi
 | **Observer** | Behavioral | [`backend/src/patterns/observer/EventSubject.ts`](file:///backend/src/patterns/observer/EventSubject.ts) | Sequence Diagram #6 | **Decoupled Notification Broadcast**: Broadcasts event updates and automated waitlist promotions to `RegisteredStudentsObserver`, `OrganizerObserver`, and `AdminAuditObserver`. |
 | **MVC** | Architectural | `backend/src/` (Models & Controllers)<br/>`frontend/src/` (Views & Components) | MVC Diagram #17 | **Model-View-Controller App Architecture**: Clean separation where Views never touch raw SQL, Models never touch the DOM, and Express Controllers orchestrate REST transactions. |
 
----
-
-### Where Each Pattern Fits (Deep Dive)
-
-#### 1. Builder + Prototype: Event Creation (Organizer Side)
-- **"Create Event" Wizard (`EventBuilder`)**: Organizers create events using a multi-step guided wizard. Required fields are `title`, `date`, and `college`. Optional fields include `prizePool`, `minTeamSize`/`maxTeamSize`, `speakers`, `sponsors`, and `isInterCollege`. Chained steps assemble the event and validate all constraints in `build()` before persistence.
-- **"Duplicate Event" Button (`EventPrototype`)**: Colleges rerun the same annual symposiums and fests. The clone button produces a clean deep-copy of the event where array properties like `speakers` and `sponsors` are fully cloned to prevent memory reference leaks. The organizer quickly sets the new year's date and venue while draft status resets to `DRAFT`.
-
-#### 2. Mediator + Template Method: Registration and Event Lifecycle
-- **Registration Flow (`EventCoordinator`)**: When a student clicks register, the `EventCoordinator` mediator triggers four isolated colleagues in order:
-  1. `SeatColleague`: Verifies capacity and allocates seat or waitlist spot.
-  2. `PaymentColleague`: Deducts/clears the calculated registration fee.
-  3. `NotificationColleague`: Sends official confirmation email with ticket details.
-  4. `DashboardColleague`: Increments the organizer's live attendee dashboard roster.
-  *None of these colleagues communicate directly; all requests flow through the mediator.*
-- **Event Publishing Workflow (`EventWorkflow`)**: The abstract `EventWorkflow.run()` template method enforces the invariant lifecycle: `validate()` → `setupRegistration()` → `publish()` → `executeEvent()` → `close()` → `generateReport()`. Specialized subclasses override only the steps that differ:
-  - `HackathonWorkflow`: Enforces GitHub repository links, team formations, and judge rubric setup.
-  - `CulturalFestWorkflow`: Enforces solo/group performance slots, stage acoustics, and ticketing gates.
-
-#### 3. Strategy + Memento: Fees and Edit History
-- **Fee Calculation (`PricingStrategy`)**: Rather than nested conditional statements, the fee engine uses interchangeable pricing strategies resolved at runtime based on event settings:
-  - `FreeStrategy`: Zero-cost entry for open campus workshops.
-  - `EarlyBirdStrategy`: 25% discount for early registrants.
-  - `InterCollegeFeeStrategy`: Flat institutional surcharge for external guests.
-  - `GroupDiscountStrategy`: 20% discount for hackathon teams of 3 or more.
-  - `StudentIdDiscountStrategy`: 15% discount for verified student cardholders.
-- **Undo for Event Edits (`EventMemento`)**: Organizers frequently tweak schedules, venue locations, and registration cutoffs. Accidental deadline shifts can lock students out prematurely. Prior to committing any update, an immutable `EventMemento` snapshot is pushed onto the `EventHistoryCaretaker` stack and saved to SQLite `EVENT_MEMENTO`. An **"Undo"** button pops the last snapshot and immediately restores the prior state.
-
-#### 4. MVC Architecture & Pattern Explorer
-- **Strict Separation of Concerns**:
-  - `models/`: Database schemas, DAOs (`EventRepository`, `MementoRepository`), and `DatabaseManager`.
-  - `views/`: React components and pages (`EventCard`, `OrganizerDashboard`, `StudentDashboard`).
-  - `controllers/`: Express handlers (`EventController`, `RegistrationController`, `AuthController`) and frontend `api.ts` service client.
-- **Pattern Demo Explorer**: The sidebar includes the Design Pattern Explorer with a live interactive sandbox for each pattern (`BuilderDemo`, `PrototypeDemo`, `MediatorDemo`, `TemplateMethodDemo`, `StrategyDemo`, `MementoDemo`, `MVCDemo`), allowing users to run live simulations and view data flow in real time.
-
----
-
-## ⚡ Technical Challenges & Solutions
+##  Technical Challenges & Solutions
 
 ### 1. Preventing Race Conditions in Concurrent Registrations & Waitlist Promotion
 - **Problem**: When an event has 1 remaining seat (`99/100`) and two concurrent registration requests arrive simultaneously, a naive check-then-insert pattern could result in overbooking (`101/100`).
@@ -254,44 +217,43 @@ npm test
 ### Test Suite Execution Output:
 ```text
 ====================================================
-🚀 EVENTBRIDGE AUTOMATED TEST RUNNER
+ EVENTBRIDGE AUTOMATED TEST RUNNER
 ====================================================
 
 [INFO] Starting EventBridge Database Seeding...
 [INFO] Database seeding completed successfully.
 
-🧪 Running Suite: Event Factory & Creation Tests...
-✅ Event Factory & Creation Tests Passed!
+ Running Suite: Event Factory & Creation Tests...
+ Event Factory & Creation Tests Passed!
 
-🧪 Running Suite: Event Lifecycle & Approval State Machine Tests...
-✅ Event Lifecycle & Approval State Machine Tests Passed!
+ Running Suite: Event Lifecycle & Approval State Machine Tests...
+ Event Lifecycle & Approval State Machine Tests Passed!
+ Running Suite: Proxy Pattern & College Isolation Authorization Tests...
+ Proxy Pattern & College Isolation Authorization Tests Passed!
 
-🧪 Running Suite: Proxy Pattern & College Isolation Authorization Tests...
-✅ Proxy Pattern & College Isolation Authorization Tests Passed!
+ Running Suite: Registration Validation Chain & Duplicate Protection Tests...
+ Registration Validation Chain & Duplicate Protection Tests Passed!
 
-🧪 Running Suite: Registration Validation Chain & Duplicate Protection Tests...
-✅ Registration Validation Chain & Duplicate Protection Tests Passed!
+ Running Suite: Waitlist Management & Auto-Promotion Tests...
+ Waitlist Management & Auto-Promotion Tests Passed!
 
-🧪 Running Suite: Waitlist Management & Auto-Promotion Tests...
-✅ Waitlist Management & Auto-Promotion Tests Passed!
-
-🧪 Running Suite: Advanced Gang of Four Patterns (Builder, Prototype, Mediator, Template, Strategy, Memento)...
-✅ Builder Pattern: Required fields validated, optional fields assembled, build() enforced
-✅ Prototype Pattern: Deep cloning created isolated copy, array mutation protected
-✅ Mediator Pattern: EventCoordinator successfully coordinated 4 colleagues
-✅ Template Method: HackathonWorkflow and CulturalFestWorkflow executed skeleton algorithms
-✅ Strategy Pattern: FeeCalculatorContext dynamically evaluated all 5 pricing strategies
-✅ Memento Pattern: State snapshot captured, pushed, popped, and restored accurately
-✅ Advanced Gang of Four Patterns Passed!
+Running Suite: Advanced Gang of Four Patterns (Builder, Prototype, Mediator, Template, Strategy, Memento)...
+ Builder Pattern: Required fields validated, optional fields assembled, build() enforced
+ Prototype Pattern: Deep cloning created isolated copy, array mutation protected
+ Mediator Pattern: EventCoordinator successfully coordinated 4 colleagues
+ Template Method: HackathonWorkflow and CulturalFestWorkflow executed skeleton algorithms
+ Strategy Pattern: FeeCalculatorContext dynamically evaluated all 5 pricing strategies
+ Memento Pattern: State snapshot captured, pushed, popped, and restored accurately
+ Advanced Gang of Four Patterns Passed!
 
 ====================================================
-🎉 ALL 6 TEST SUITES PASSED SUCCESSFULLY (100% GREEN)
+6 cases passed
 ====================================================
 ```
 
 ---
 
-## 🚀 Local Development Setup
+##  Local Development Setup
 
 ### Prerequisites
 - **Node.js**: v18.0.0 or higher
@@ -339,8 +301,3 @@ npm start              # Or 'npm run dev' — starts backend (:5000) & frontend 
 
 ---
 
-## 🔮 Future Improvements
-
-- **QR Code Attendance Verification**: Generate dynamic cryptographic QR codes for fast mobile check-ins at event entrances.
-- **Webhook Integrations**: Enable organizers to receive instant Discord/Slack notifications when event registrations hit milestones.
-- **Team / Group Registrations**: Support multi-student hackathon and sports squad registrations under a single team captain.
