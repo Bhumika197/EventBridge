@@ -17,18 +17,40 @@ public class DatabaseManager {
     private final String dbUrl;
 
     private DatabaseManager() {
-        String dataDir = "data";
-        File dir = new File(dataDir);
-        if (!dir.exists()) {
-            dir.mkdirs();
+        String customPath = System.getProperty("eventbridge.db.path");
+        File resolved = null;
+        if (customPath != null && new File(customPath).exists()) {
+            resolved = new File(customPath);
+        } else {
+            String[] candidates = {
+                "backend/data/eventbridge.db",
+                "../backend/data/eventbridge.db",
+                "backend-java/data/eventbridge.db",
+                "data/eventbridge.db",
+                "../data/eventbridge.db",
+                "eventbridge.db"
+            };
+            for (String cand : candidates) {
+                File f = new File(cand);
+                if (f.exists()) {
+                    resolved = f;
+                    break;
+                }
+            }
         }
-        this.dbUrl = "jdbc:sqlite:" + dataDir + "/eventbridge.db";
+        if (resolved == null) {
+            resolved = new File("backend/data/eventbridge.db");
+            if (resolved.getParentFile() != null) {
+                resolved.getParentFile().mkdirs();
+            }
+        }
+        this.dbUrl = "jdbc:sqlite:" + resolved.getAbsolutePath().replace('\\', '/');
         try {
             Class.forName("org.sqlite.JDBC");
             this.connection = DriverManager.getConnection(dbUrl);
             createTables();
         } catch (ClassNotFoundException | SQLException e) {
-            System.err.println("Error initializing SQLite Database: " + e.getMessage());
+            System.err.println("Error initializing SQLite Database (" + dbUrl + "): " + e.getMessage());
         }
     }
 
@@ -40,10 +62,7 @@ public class DatabaseManager {
     }
 
     public Connection getConnection() throws SQLException {
-        if (connection == null || connection.isClosed()) {
-            connection = DriverManager.getConnection(dbUrl);
-        }
-        return connection;
+        return DriverManager.getConnection(dbUrl);
     }
 
     private void createTables() {

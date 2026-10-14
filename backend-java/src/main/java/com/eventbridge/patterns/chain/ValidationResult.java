@@ -20,6 +20,7 @@ public class ValidationResult {
     }
 
     public boolean isAllowed() { return allowed; }
+    public boolean isValid() { return allowed; }
     public String getReason() { return reason; }
     public String getHandlerName() { return handlerName; }
 }
