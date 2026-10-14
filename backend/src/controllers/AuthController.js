@@ -1,6 +1,6 @@
-import { AuthService } from "../services/AuthService";
-import { CollegeRepository } from "../repositories/CollegeRepository";
-import { UserRepository } from "../repositories/UserRepository";
+import { AuthService } from "../services/AuthService.js";
+import { CollegeRepository } from "../repositories/CollegeRepository.js";
+import { UserRepository } from "../repositories/UserRepository.js";
 export class AuthController {
   authService = new AuthService();
   collegeRepo = new CollegeRepository();

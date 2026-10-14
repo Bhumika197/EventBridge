@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { PatternInfoController } from "../controllers/PatternInfoController";
+import { PatternInfoController } from "../controllers/PatternInfoController.js";
 const router = Router();
 const controller = new PatternInfoController();
 router.get("/", controller.getPatterns);

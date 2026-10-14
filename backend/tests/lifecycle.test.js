@@ -1,6 +1,6 @@
-import { setupTestDb, assert, assertEquals } from "./testHelper";
-import { EventService } from "../src/services/EventService";
-import { UserRepository } from "../src/repositories/UserRepository";
+import { setupTestDb, assert, assertEquals } from "./testHelper.js";
+import { EventService } from "../src/services/EventService.js";
+import { UserRepository } from "../src/repositories/UserRepository.js";
 export async function runLifecycleTests() {
   console.log("\u{1F9EA} Running Suite: Event Lifecycle & Approval State Machine Tests...");
   await setupTestDb();
@@ -54,7 +54,7 @@ export async function runLifecycleTests() {
   assertEquals(approvedEvent.status, "PUBLISHED", "Approved event must be in PUBLISHED status ready for registration");
   console.log("\u2705 Event Lifecycle & Approval State Machine Tests Passed!\n");
 }
-if (require.main === module) {
+if (typeof require !== "undefined" && require.main === module) {
   runLifecycleTests().catch((err) => {
     console.error("\u274C Lifecycle Tests Failed:", err);
     process.exit(1);

@@ -1,4 +1,4 @@
-import { DatabaseManager } from "../db/DatabaseManager";
+import { DatabaseManager } from "../db/DatabaseManager.js";
 export class ContactRequestRepository {
   dbManager;
   constructor() {

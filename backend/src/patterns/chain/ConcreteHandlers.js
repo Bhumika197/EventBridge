@@ -1,4 +1,4 @@
-import { ValidationHandler } from "./ValidationHandler";
+import { ValidationHandler } from "./ValidationHandler.js";
 export class AuthCheckHandler extends ValidationHandler {
   async validate(context) {
     if (!context.student) {

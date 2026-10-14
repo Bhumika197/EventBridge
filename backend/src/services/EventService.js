@@ -1,9 +1,9 @@
-import { EventAccessProxy } from "../patterns/proxy/EventAccessProxy";
-import { EventFactoryProvider } from "../patterns/factory/EventFactory";
-import { EventSubject, RegisteredStudentsObserver, OrganizerObserver, AdminAuditObserver } from "../patterns/observer/EventSubject";
-import { EventPrototype } from "../patterns/prototype/EventPrototype";
-import { EventOriginator, EventHistoryCaretaker } from "../patterns/memento/EventMemento";
-import { logger } from "../utils/logger";
+import { EventAccessProxy } from "../patterns/proxy/EventAccessProxy.js";
+import { EventFactoryProvider } from "../patterns/factory/EventFactory.js";
+import { EventSubject, RegisteredStudentsObserver, OrganizerObserver, AdminAuditObserver } from "../patterns/observer/EventSubject.js";
+import { EventPrototype } from "../patterns/prototype/EventPrototype.js";
+import { EventOriginator, EventHistoryCaretaker } from "../patterns/memento/EventMemento.js";
+import { logger } from "../utils/logger.js";
 export class EventService {
   eventProxy;
   eventSubject;

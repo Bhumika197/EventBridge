@@ -1,7 +1,7 @@
-import { setupTestDb, assert, assertEquals } from "./testHelper";
-import { EventFactoryProvider } from "../src/patterns/factory/EventFactory";
-import { EventService } from "../src/services/EventService";
-import { UserRepository } from "../src/repositories/UserRepository";
+import { setupTestDb, assert, assertEquals } from "./testHelper.js";
+import { EventFactoryProvider } from "../src/patterns/factory/EventFactory.js";
+import { EventService } from "../src/services/EventService.js";
+import { UserRepository } from "../src/repositories/UserRepository.js";
 export async function runEventTests() {
   console.log("\u{1F9EA} Running Suite: Event Factory & Creation Tests...");
   await setupTestDb();
@@ -51,7 +51,7 @@ export async function runEventTests() {
   assertEquals(createdEvent.status, "DRAFT", "Created event should start in DRAFT status.");
   console.log("\u2705 Event Factory & Creation Tests Passed!\n");
 }
-if (require.main === module) {
+if (typeof require !== "undefined" && require.main === module) {
   runEventTests().catch((err) => {
     console.error("\u274C Event Tests Failed:", err);
     process.exit(1);

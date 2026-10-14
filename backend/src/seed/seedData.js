@@ -1,10 +1,10 @@
 import bcrypt from "bcryptjs";
-import { DatabaseManager } from "../db/DatabaseManager";
-import { CollegeRepository } from "../repositories/CollegeRepository";
-import { UserRepository } from "../repositories/UserRepository";
-import { EventService } from "../services/EventService";
-import { RegistrationService } from "../services/RegistrationService";
-import { logger } from "../utils/logger";
+import { DatabaseManager } from "../db/DatabaseManager.js";
+import { CollegeRepository } from "../repositories/CollegeRepository.js";
+import { UserRepository } from "../repositories/UserRepository.js";
+import { EventService } from "../services/EventService.js";
+import { RegistrationService } from "../services/RegistrationService.js";
+import { logger } from "../utils/logger.js";
 export async function seedDatabase() {
   logger.info("Starting EventBridge Database Seeding...");
   const dbManager = DatabaseManager.getInstance();
@@ -28,8 +28,9 @@ export async function seedDatabase() {
   const cGIT = await collegeRepo.create({ name: "Greenfield Institute of Technology", code: "GIT", location: "Greenfield Tech Park", emailDomain: "git.edu", status: "ACTIVE" });
   const cCAC = await collegeRepo.create({ name: "City Arts College", code: "CAC", location: "Downtown Metro", emailDomain: "cac.edu", status: "ACTIVE" });
   const cNBC = await collegeRepo.create({ name: "National Business College", code: "NBC", location: "Financial Center", emailDomain: "nbc.edu", status: "ACTIVE" });
-  const defaultPassword = await bcrypt.hash("password123", 10);
-  const adminPassword = await bcrypt.hash("admin123", 10);
+  const demoPassword = await bcrypt.hash("12345678", 10);
+  const defaultPassword = demoPassword;
+  const adminPassword = demoPassword;
   const adminUser = await userRepo.create({
     name: "Platform Administrator",
     username: "admin",
@@ -37,6 +38,51 @@ export async function seedDatabase() {
     passwordHash: adminPassword,
     collegeId: cRBU.collegeId,
     role: "PLATFORM_ADMIN",
+    status: "ACTIVE"
+  });
+  await userRepo.create({
+    name: "Bhumika Admin",
+    username: "bhumika@admin.com",
+    email: "bhumika@admin.com",
+    passwordHash: demoPassword,
+    collegeId: cRBU.collegeId,
+    phone: "+91-98765-0001",
+    role: "PLATFORM_ADMIN",
+    status: "ACTIVE"
+  });
+  await userRepo.create({
+    name: "Mrunali Organizer",
+    username: "mrunali.rbunagpur.in",
+    email: "mrunali@rbunagpur.in",
+    passwordHash: demoPassword,
+    collegeId: cRBU.collegeId,
+    department: "Technical Events Cell",
+    phone: "+91-98765-0002",
+    role: "EVENT_ORGANIZER",
+    status: "ACTIVE"
+  });
+  await userRepo.create({
+    name: "Dev Student",
+    username: "dev@student.com",
+    email: "dev@student.com",
+    passwordHash: demoPassword,
+    collegeId: cRBU.collegeId,
+    department: "Computer Science",
+    year: 3,
+    phone: "+91-98765-0003",
+    role: "STUDENT",
+    status: "ACTIVE"
+  });
+  await userRepo.create({
+    name: "Dev Student",
+    username: "dev",
+    email: "dev.alias@student.com",
+    passwordHash: demoPassword,
+    collegeId: cRBU.collegeId,
+    department: "Computer Science",
+    year: 3,
+    phone: "+91-98765-0003",
+    role: "STUDENT",
     status: "ACTIVE"
   });
   const orgRBU = await userRepo.create({

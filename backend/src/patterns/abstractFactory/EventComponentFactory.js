@@ -1,4 +1,4 @@
-import { TechnicalEventFactory, CulturalEventFactory, SportsEventFactory } from "../factory/EventFactory";
+import { TechnicalEventFactory, CulturalEventFactory, SportsEventFactory } from "../factory/EventFactory.js";
 export class TechRegistrationPolicy {
   getPolicyName() {
     return "Technical Event Policy";

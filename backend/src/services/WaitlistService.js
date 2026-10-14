@@ -1,7 +1,7 @@
-import { RegistrationRepository } from "../repositories/RegistrationRepository";
-import { EventRepository } from "../repositories/EventRepository";
-import { EventSubject } from "../patterns/observer/EventSubject";
-import { logger } from "../utils/logger";
+import { RegistrationRepository } from "../repositories/RegistrationRepository.js";
+import { EventRepository } from "../repositories/EventRepository.js";
+import { EventSubject } from "../patterns/observer/EventSubject.js";
+import { logger } from "../utils/logger.js";
 export class WaitlistService {
   regRepo;
   eventRepo;

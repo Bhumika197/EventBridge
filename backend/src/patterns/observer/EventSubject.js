@@ -1,6 +1,6 @@
-import { RegistrationRepository } from "../../repositories/RegistrationRepository";
-import { NotificationRepository } from "../../repositories/NotificationRepository";
-import { logger } from "../../utils/logger";
+import { RegistrationRepository } from "../../repositories/RegistrationRepository.js";
+import { NotificationRepository } from "../../repositories/NotificationRepository.js";
+import { logger } from "../../utils/logger.js";
 export class EventSubject {
   static instance = null;
   observers = [];

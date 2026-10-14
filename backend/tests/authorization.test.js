@@ -1,7 +1,7 @@
-import { setupTestDb, assert, assertEquals } from "./testHelper";
-import { EventService } from "../src/services/EventService";
-import { AuthService } from "../src/services/AuthService";
-import { UserRepository } from "../src/repositories/UserRepository";
+import { setupTestDb, assert, assertEquals } from "./testHelper.js";
+import { EventService } from "../src/services/EventService.js";
+import { AuthService } from "../src/services/AuthService.js";
+import { UserRepository } from "../src/repositories/UserRepository.js";
 export async function runAuthorizationTests() {
   console.log("\u{1F9EA} Running Suite: Proxy Pattern, College Isolation & Authentication Tests...");
   await setupTestDb();
@@ -83,7 +83,7 @@ export async function runAuthorizationTests() {
   assertEquals(adminAccess.restricted, false, "Platform Admin must have full governance access.");
   console.log("\u2705 Proxy Pattern, College Isolation & Authentication Tests Passed!\n");
 }
-if (require.main === module) {
+if (typeof require !== "undefined" && require.main === module) {
   runAuthorizationTests().catch((err) => {
     console.error("\u274C Authorization Tests Failed:", err);
     process.exit(1);

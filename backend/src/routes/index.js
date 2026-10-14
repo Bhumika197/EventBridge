@@ -1,9 +1,9 @@
 import { Router } from "express";
-import authRoutes from "./authRoutes";
-import eventRoutes from "./eventRoutes";
-import registrationRoutes from "./registrationRoutes";
-import adminRoutes from "./adminRoutes";
-import patternRoutes from "./patternRoutes";
+import authRoutes from "./authRoutes.js";
+import eventRoutes from "./eventRoutes.js";
+import registrationRoutes from "./registrationRoutes.js";
+import adminRoutes from "./adminRoutes.js";
+import patternRoutes from "./patternRoutes.js";
 const router = Router();
 router.use("/auth", authRoutes);
 router.use("/events", eventRoutes);

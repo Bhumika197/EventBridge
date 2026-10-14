@@ -1,4 +1,4 @@
-import { MementoRepository } from "../../repositories/MementoRepository";
+import { MementoRepository } from "../../repositories/MementoRepository.js";
 export class EventMemento {
   state;
   timestamp;

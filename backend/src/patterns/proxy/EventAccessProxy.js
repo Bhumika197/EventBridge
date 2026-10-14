@@ -1,4 +1,4 @@
-import { EventRepository } from "../../repositories/EventRepository";
+import { EventRepository } from "../../repositories/EventRepository.js";
 export class EventAccessProxy {
   realRepository;
   constructor(realRepository) {
@@ -44,7 +44,7 @@ export class EventAccessProxy {
   async findAllEligibleForUser(user) {
     const allEvents = await this.realRepository.findAll();
     if (!user) {
-      return allEvents.filter((e) => e.eventType === "INTER_COLLEGE" && e.status === "PUBLISHED");
+      return allEvents.filter((e) => e.status === "PUBLISHED");
     }
     if (user.role === "PLATFORM_ADMIN") {
       return allEvents;

@@ -1,4 +1,4 @@
-import { DatabaseManager } from "../src/db/DatabaseManager";
+import { DatabaseManager } from "../src/db/DatabaseManager.js";
 export async function setupTestDb() {
   const dbManager = DatabaseManager.getInstance();
   await dbManager.initialize();

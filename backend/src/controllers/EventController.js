@@ -1,9 +1,9 @@
-import { EventService } from "../services/EventService";
-import { ContactRequestRepository } from "../repositories/ContactRequestRepository";
-import { EventBuilder } from "../patterns/builder/EventBuilder";
-import { EventCoordinator } from "../patterns/mediator/RegistrationMediator";
-import { HackathonWorkflow, CulturalFestWorkflow } from "../patterns/template/EventWorkflow";
-import { FeeCalculatorContext } from "../patterns/strategy/FeeStrategy";
+import { EventService } from "../services/EventService.js";
+import { ContactRequestRepository } from "../repositories/ContactRequestRepository.js";
+import { EventBuilder } from "../patterns/builder/EventBuilder.js";
+import { EventCoordinator } from "../patterns/mediator/RegistrationMediator.js";
+import { HackathonWorkflow, CulturalFestWorkflow } from "../patterns/template/EventWorkflow.js";
+import { FeeCalculatorContext } from "../patterns/strategy/FeeStrategy.js";
 export class EventController {
   eventService = new EventService();
   contactRepo = new ContactRequestRepository();

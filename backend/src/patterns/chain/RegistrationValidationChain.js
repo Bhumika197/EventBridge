@@ -5,7 +5,7 @@ import {
   CollegeEligibilityHandler,
   DeadlineCheckHandler,
   DuplicateRegistrationHandler
-} from "./ConcreteHandlers";
+} from "./ConcreteHandlers.js";
 export class RegistrationValidationChain {
   head;
   constructor() {

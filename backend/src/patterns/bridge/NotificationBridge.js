@@ -1,4 +1,4 @@
-import { NotificationRepository } from "../../repositories/NotificationRepository";
+import { NotificationRepository } from "../../repositories/NotificationRepository.js";
 export class InAppChannel {
   repo = new NotificationRepository();
   getChannelType() {

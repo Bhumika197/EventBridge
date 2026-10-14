@@ -1,7 +1,7 @@
-import { setupTestDb, assertEquals } from "./testHelper";
-import { EventService } from "../src/services/EventService";
-import { RegistrationService } from "../src/services/RegistrationService";
-import { UserRepository } from "../src/repositories/UserRepository";
+import { setupTestDb, assertEquals } from "./testHelper.js";
+import { EventService } from "../src/services/EventService.js";
+import { RegistrationService } from "../src/services/RegistrationService.js";
+import { UserRepository } from "../src/repositories/UserRepository.js";
 export async function runRegistrationTests() {
   console.log("\u{1F9EA} Running Suite: Registration Validation Chain & Duplicate Protection Tests...");
   await setupTestDb();
@@ -74,7 +74,7 @@ export async function runRegistrationTests() {
   assertEquals(expiredResult.validationResult.handlerName, "DeadlineCheckHandler", "DeadlineCheckHandler must intercept expired deadline");
   console.log("\u2705 Registration Validation Chain & Duplicate Protection Tests Passed!\n");
 }
-if (require.main === module) {
+if (typeof require !== "undefined" && require.main === module) {
   runRegistrationTests().catch((err) => {
     console.error("\u274C Registration Tests Failed:", err);
     process.exit(1);

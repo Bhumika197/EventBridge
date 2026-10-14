@@ -1,10 +1,13 @@
 import { Router } from "express";
-import { AdminController } from "../controllers/AdminController";
-import { authenticateToken, requireAuth, requireRole } from "../middleware/authMiddleware";
+import { AdminController } from "../controllers/AdminController.js";
+import { authenticateToken, requireAuth, requireRole } from "../middleware/authMiddleware.js";
 const router = Router();
 const controller = new AdminController();
 router.use(authenticateToken, requireAuth, requireRole(["PLATFORM_ADMIN"]));
 router.get("/stats", controller.getPlatformStats);
 router.get("/users", controller.getAllUsers);
 router.post("/colleges", controller.createCollege);
+router.get("/logs/stats", controller.getDatabaseStats);
+router.get("/logs/archive", controller.getDecodedArchiveLogs);
+router.get("/logs/user/:userId", controller.getUserLogs);
 export default router;

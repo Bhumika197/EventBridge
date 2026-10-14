@@ -2,11 +2,14 @@
   "name": "eventbridge-backend",
   "version": "1.0.0",
   "description": "EventBridge Backend with Design Patterns and SQLite",
-  "main": "dist/server.js",
+  "type": "module",
+  "main": "src/server.js",
   "scripts": {
-    "dev": "java -cp \"../backend-java/bin;../backend-java/*\" com.eventbridge.server.EventBridgeServer",
-    "start": "java -cp \"../backend-java/bin;../backend-java/*\" com.eventbridge.server.EventBridgeServer",
-    "build": "java -version",
+    "dev": "node src/server.js",
+    "dev:java": "java -cp \"../backend-java/bin;../backend-java/*\" com.eventbridge.server.EventBridgeServer",
+    "dev:node": "node src/server.js",
+    "start": "node src/server.js",
+    "build": "node -e \"console.log('Backend ready')\"",
     "test": "node tests/runAllTests.js"
   },
   "dependencies": {

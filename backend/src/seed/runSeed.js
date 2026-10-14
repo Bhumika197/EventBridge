@@ -1,4 +1,4 @@
-import { seedDatabase } from "./seedData";
+import { seedDatabase } from "./seedData.js";
 seedDatabase().then(() => {
   console.log("Database seeding finished successfully.");
   process.exit(0);

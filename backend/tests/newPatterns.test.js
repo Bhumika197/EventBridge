@@ -1,7 +1,7 @@
-import { EventBuilder } from "../src/patterns/builder/EventBuilder";
-import { EventPrototype } from "../src/patterns/prototype/EventPrototype";
-import { EventCoordinator } from "../src/patterns/mediator/RegistrationMediator";
-import { HackathonWorkflow, CulturalFestWorkflow } from "../src/patterns/template/EventWorkflow";
+import { EventBuilder } from "../src/patterns/builder/EventBuilder.js";
+import { EventPrototype } from "../src/patterns/prototype/EventPrototype.js";
+import { EventCoordinator } from "../src/patterns/mediator/RegistrationMediator.js";
+import { HackathonWorkflow, CulturalFestWorkflow } from "../src/patterns/template/EventWorkflow.js";
 import {
   FeeCalculatorContext,
   FreeStrategy,
@@ -9,8 +9,8 @@ import {
   InterCollegeFeeStrategy,
   GroupDiscountStrategy,
   StudentIdDiscountStrategy
-} from "../src/patterns/strategy/FeeStrategy";
-import { EventOriginator, EventHistoryCaretaker } from "../src/patterns/memento/EventMemento";
+} from "../src/patterns/strategy/FeeStrategy.js";
+import { EventOriginator, EventHistoryCaretaker } from "../src/patterns/memento/EventMemento.js";
 export async function runNewPatternsTests() {
   console.log("\u{1F9EA} Running Suite: New Design Patterns (Builder, Prototype, Mediator, Template, Strategy, Memento)...");
   console.log("  Testing Builder Pattern (EventBuilder)...");

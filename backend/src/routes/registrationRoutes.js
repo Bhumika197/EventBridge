@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { RegistrationController } from "../controllers/RegistrationController";
-import { authenticateToken, requireAuth } from "../middleware/authMiddleware";
+import { RegistrationController } from "../controllers/RegistrationController.js";
+import { authenticateToken, requireAuth } from "../middleware/authMiddleware.js";
 const router = Router();
 const controller = new RegistrationController();
 router.post("/event/:eventId", authenticateToken, requireAuth, controller.register);

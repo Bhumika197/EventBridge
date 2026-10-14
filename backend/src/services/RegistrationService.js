@@ -1,10 +1,10 @@
-import { RegistrationValidationChain } from "../patterns/chain/RegistrationValidationChain";
-import { RegistrationRepository } from "../repositories/RegistrationRepository";
-import { EventRepository } from "../repositories/EventRepository";
-import { UserRepository } from "../repositories/UserRepository";
-import { NotificationRepository } from "../repositories/NotificationRepository";
-import { WaitlistService } from "./WaitlistService";
-import { logger } from "../utils/logger";
+import { RegistrationValidationChain } from "../patterns/chain/RegistrationValidationChain.js";
+import { RegistrationRepository } from "../repositories/RegistrationRepository.js";
+import { EventRepository } from "../repositories/EventRepository.js";
+import { UserRepository } from "../repositories/UserRepository.js";
+import { NotificationRepository } from "../repositories/NotificationRepository.js";
+import { WaitlistService } from "./WaitlistService.js";
+import { logger } from "../utils/logger.js";
 export class RegistrationService {
   validationChain;
   regRepo;

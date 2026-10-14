@@ -1,9 +1,9 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { DatabaseManager } from "./db/DatabaseManager";
-import apiRoutes from "./routes";
-import { seedDatabase } from "./seed/seedData";
+import { DatabaseManager } from "./db/DatabaseManager.js";
+import apiRoutes from "./routes/index.js";
+import { seedDatabase } from "./seed/seedData.js";
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5e3;

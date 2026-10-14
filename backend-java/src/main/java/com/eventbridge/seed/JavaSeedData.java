@@ -4,6 +4,7 @@ import com.eventbridge.db.DatabaseManager;
 import com.eventbridge.model.College;
 import com.eventbridge.repository.CollegeRepository;
 import com.eventbridge.repository.UserRepository;
+import com.eventbridge.util.BCrypt;
 
 import java.sql.Connection;
 import java.sql.Statement;
@@ -35,11 +36,15 @@ public class JavaSeedData {
             College cCAC = collegeRepo.create("City Arts College", "CAC", "Downtown Metro", "cac.edu");
             College cNBC = collegeRepo.create("National Business College", "NBC", "Financial Center", "nbc.edu");
 
-            String defaultPwd = "password123";
-            String adminPwd = "admin123";
+            String defaultPwd = BCrypt.hashpw("12345678", BCrypt.gensalt(10));
+            String adminPwd = defaultPwd;
 
             // 2. Seed Users
             userRepo.create("Platform Administrator", "admin", "admin@eventbridge.edu", adminPwd, cRBU.getCollegeId(), "PLATFORM_ADMIN");
+            userRepo.create("Bhumika Admin", "bhumika@admin.com", "bhumika@admin.com", adminPwd, cRBU.getCollegeId(), "PLATFORM_ADMIN");
+            userRepo.create("Mrunali Organizer", "mrunali.rbunagpur.in", "mrunali@rbunagpur.in", defaultPwd, cRBU.getCollegeId(), "EVENT_ORGANIZER");
+            userRepo.create("Dev Student", "dev@student.com", "dev@student.com", defaultPwd, cRBU.getCollegeId(), "STUDENT");
+            userRepo.create("Dev Student", "dev", "dev.alias@student.com", defaultPwd, cRBU.getCollegeId(), "STUDENT");
             userRepo.create("Dr. Rajesh Sharma (RBU Cell)", "org_rbu", "r.sharma@rbunagpur.in", defaultPwd, cRBU.getCollegeId(), "EVENT_ORGANIZER");
             userRepo.create("Prof. Amit Verma (RCOEM Club)", "org_rcoem", "a.verma@rcoem.in", defaultPwd, cRCOEM.getCollegeId(), "EVENT_ORGANIZER");
 

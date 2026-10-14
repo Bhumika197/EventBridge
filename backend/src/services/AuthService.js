@@ -1,9 +1,10 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { UserRepository } from "../repositories/UserRepository";
-import { EmailService } from "./EmailService";
-import { EmailChannel } from "../patterns/bridge/NotificationBridge";
-import { logger } from "../utils/logger";
+import { UserRepository } from "../repositories/UserRepository.js";
+import { EmailService } from "./EmailService.js";
+import { EmailChannel } from "../patterns/bridge/NotificationBridge.js";
+import { logger } from "../utils/logger.js";
+import { CustomLogDatabase } from "../db/CustomLogDatabase.js";
 const JWT_SECRET = process.env.JWT_SECRET || "eventbridge_secret_key_2026";
 const resetCodeStore = /* @__PURE__ */ new Map();
 export class AuthService {
@@ -31,6 +32,16 @@ export class AuthService {
       throw new Error("Your account is currently inactive. Please contact your platform administrator.");
     }
     logger.info(`User successfully signed in: '${user.username}' (#${user.userId}, Role: ${user.role})`);
+    
+    // Track in Custom 60-Log Circular Database
+    const customDb = CustomLogDatabase.getInstance();
+    await customDb.registerUser(user);
+    await customDb.appendLog(user.userId, "USER_LOGIN", {
+      role: user.role,
+      username: user.username,
+      loginTime: new Date().toISOString()
+    });
+
     const token = jwt.sign(
       {
         userId: user.userId,

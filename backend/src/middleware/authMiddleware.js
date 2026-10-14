@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { UserRepository } from "../repositories/UserRepository";
+import { UserRepository } from "../repositories/UserRepository.js";
 const JWT_SECRET = process.env.JWT_SECRET || "eventbridge_secret_key_2026";
 export const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers["authorization"];

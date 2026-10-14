@@ -14,11 +14,12 @@ import { StudentDashboard } from "./pages/StudentDashboard";
 import { OrganizerDashboard } from "./pages/OrganizerDashboard";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import { api } from "./services/api";
+import { DEFAULT_EVENTS } from "./data/defaultEvents";
 import { Search, X, RotateCcw, Calendar } from "lucide-react";
 const MainApp = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("explore");
-  const [events, setEvents] = useState([]);
+  const [events, setEvents] = useState(DEFAULT_EVENTS);
   const [colleges, setColleges] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,11 +36,11 @@ const MainApp = () => {
   const loadEvents = async () => {
     try {
       const res = await api.getEligibleEvents();
-      if (res.success) {
+      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
         setEvents(res.data);
       }
     } catch (err) {
-      console.error("Error fetching events:", err);
+      console.warn("Using offline/fallback events:", err?.message || err);
     }
   };
   const loadColleges = async () => {

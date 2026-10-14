@@ -1,5 +1,5 @@
-import { RegistrationService } from "../services/RegistrationService";
-import { NotificationRepository } from "../repositories/NotificationRepository";
+import { RegistrationService } from "../services/RegistrationService.js";
+import { NotificationRepository } from "../repositories/NotificationRepository.js";
 export class RegistrationController {
   regService = new RegistrationService();
   notifRepo = new NotificationRepository();
